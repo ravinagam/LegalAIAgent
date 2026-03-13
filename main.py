@@ -26,6 +26,91 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("legal-ai")
 
 # ---------------------------------------------------------------------------
+# MongoDB (optional) — set MONGODB_URI env var to enable persistent storage
+# ---------------------------------------------------------------------------
+_MONGODB_URI = os.getenv("MONGODB_URI", "")
+_mongo_db   = None   # set in startup
+_grid_fs    = None   # AsyncIOMotorGridFSBucket for original file binaries
+
+try:
+    from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
+    _MOTOR_OK = True
+except ImportError:
+    _MOTOR_OK = False
+    if _MONGODB_URI:
+        log.warning("motor not installed but MONGODB_URI is set — run: pip install motor")
+
+
+async def _init_mongo() -> bool:
+    global _mongo_db, _grid_fs
+    if not _MOTOR_OK or not _MONGODB_URI:
+        return False
+    try:
+        _client = AsyncIOMotorClient(_MONGODB_URI, serverSelectionTimeoutMS=5000)
+        # derive db name from URI (last path segment before '?'), default "legalai"
+        db_name = (_MONGODB_URI.split("/")[-1].split("?")[0]).strip() or "legalai"
+        _mongo_db = _client[db_name]
+        _grid_fs  = AsyncIOMotorGridFSBucket(_mongo_db, bucket_name="originals")
+        await _client.admin.command("ping")
+        log.info("MongoDB connected (db=%s)", db_name)
+        return True
+    except Exception as exc:
+        log.error("MongoDB connection failed: %s — falling back to file storage", exc)
+        _mongo_db = None
+        _grid_fs  = None
+        return False
+
+
+async def _mongo_load_users() -> None:
+    async for u in _mongo_db.users.find():
+        u.pop("_id", None)
+        users_db[u["username"]] = u
+
+
+async def _mongo_save_user(username: str) -> None:
+    data = {"_id": username, **users_db[username]}
+    await _mongo_db.users.replace_one({"_id": username}, data, upsert=True)
+
+
+async def _mongo_load_docs() -> None:
+    async for d in _mongo_db.documents.find():
+        d.pop("_id", None)
+        documents[d["id"]] = d
+
+
+async def _mongo_save_doc(doc: dict) -> None:
+    data = {"_id": doc["id"], **doc}
+    await _mongo_db.documents.replace_one({"_id": doc["id"]}, data, upsert=True)
+
+
+async def _mongo_delete_doc(doc_id: str) -> None:
+    await _mongo_db.documents.delete_one({"_id": doc_id})
+    # delete original binary from GridFS
+    cursor = _grid_fs.find({"metadata.doc_id": doc_id})
+    async for gf in cursor:
+        await _grid_fs.delete(gf._id)
+
+
+async def _mongo_save_original(doc_id: str, ext: str, data: bytes) -> None:
+    """Store (or replace) original binary in GridFS."""
+    fname = f"{doc_id}_original{ext}"
+    # delete any previous version
+    cursor = _grid_fs.find({"metadata.doc_id": doc_id})
+    async for gf in cursor:
+        await _grid_fs.delete(gf._id)
+    await _grid_fs.upload_from_stream(fname, data, metadata={"doc_id": doc_id})
+
+
+async def _mongo_read_original(doc_id: str, ext: str) -> bytes | None:
+    """Read original binary from GridFS; returns None if not found."""
+    try:
+        fname  = f"{doc_id}_original{ext}"
+        stream = await _grid_fs.open_download_stream_by_name(fname)
+        return await stream.read()
+    except Exception:
+        return None
+
+# ---------------------------------------------------------------------------
 # App & CORS
 # ---------------------------------------------------------------------------
 app = FastAPI(title="Legal AI Agent", version="1.0.0")
@@ -41,6 +126,18 @@ async def startup_check():
         log.error("=" * 60)
     else:
         log.info(f"Anthropic API key loaded (sk-...{key[-6:]})")
+
+    if _MONGODB_URI:
+        mongo_ok = await _init_mongo()
+        if mongo_ok:
+            users_db.clear()
+            documents.clear()
+            await _mongo_load_users()
+            await _mongo_load_docs()
+            log.info("Loaded %d users, %d documents from MongoDB",
+                     len(users_db), len(documents))
+        else:
+            log.warning("MongoDB unavailable — using file storage fallback")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -629,7 +726,10 @@ async def register(body: RegisterRequest):
         "email": body.email.strip(),
         "created_at": datetime.now().isoformat(),
     }
-    _save_users()
+    if _mongo_db is not None:
+        await _mongo_save_user(username)
+    else:
+        _save_users()
     token = str(uuid.uuid4())
     sessions[token] = username
     log.info("New user registered: %s", username)
@@ -717,9 +817,12 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
     uploaded_at = datetime.now().isoformat()
     original_ext = Path(file.filename or "document.txt").suffix.lower()
 
-    # Save original binary so users can download the original file
+    # Save original binary (GridFS if MongoDB, else disk)
     try:
-        (_DOCS_DIR / f"{doc_id}_original{original_ext}").write_bytes(data)
+        if _mongo_db is not None:
+            await _mongo_save_original(doc_id, original_ext, data)
+        else:
+            (_DOCS_DIR / f"{doc_id}_original{original_ext}").write_bytes(data)
     except Exception as exc:
         log.warning("Could not save original file for %s: %s", doc_id, exc)
 
@@ -734,7 +837,10 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
         "uploaded_at": uploaded_at,
         "original_ext": original_ext,
     }
-    _save_doc(documents[doc_id])
+    if _mongo_db is not None:
+        await _mongo_save_doc(documents[doc_id])
+    else:
+        _save_doc(documents[doc_id])
 
     log.info("Document %s stored successfully (owner=%s)", doc_id, owner or "anonymous")
     return {
@@ -788,20 +894,27 @@ async def download_original_file(doc_id: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    ext          = doc.get("original_ext", Path(doc.get("filename", "document.txt")).suffix.lower())
-    original_path = _DOCS_DIR / f"{doc_id}_original{ext}"
+    ext  = doc.get("original_ext", Path(doc.get("filename", "document.txt")).suffix.lower())
+    mime = _MIME_TYPES.get(ext, "application/octet-stream")
+    from fastapi.responses import Response as _Resp
 
-    if original_path.exists():
-        mime = _MIME_TYPES.get(ext, "application/octet-stream")
-        from fastapi.responses import Response as _Resp
+    # Try GridFS first, then disk
+    binary = None
+    if _mongo_db is not None:
+        binary = await _mongo_read_original(doc_id, ext)
+    else:
+        p = _DOCS_DIR / f"{doc_id}_original{ext}"
+        if p.exists():
+            binary = p.read_bytes()
+
+    if binary is not None:
         return _Resp(
-            content=original_path.read_bytes(),
+            content=binary,
             media_type=mime,
             headers={"Content-Disposition": f'attachment; filename="{doc["filename"]}"'},
         )
 
-    # Fallback for documents uploaded before this feature (no binary stored)
-    # Use .txt extension so the file opens correctly — do NOT keep the original ext
+    # Fallback — no binary stored: serve extracted text as .txt
     stem = Path(doc["filename"]).stem
     safe_stem = "".join(c if c.isalnum() or c in "-_ " else "_" for c in stem).strip() or "document"
     return PlainTextResponse(
@@ -876,17 +989,26 @@ async def update_document(doc_id: str, body: UpdateDocRequest):
 
     # Regenerate the downloadable binary so it reflects the edited text
     ext = doc.get("original_ext", Path(doc.get("filename", "document.txt")).suffix.lower())
-    original_path = _DOCS_DIR / f"{doc_id}_original{ext}"
     try:
         if ext in (".docx", ".doc"):
-            original_path.write_bytes(_create_docx_from_text(body.text))
+            new_binary = _create_docx_from_text(body.text)
         elif ext in (".txt", ".md"):
-            original_path.write_bytes(body.text.encode("utf-8"))
-        # PDF originals are not regenerated — the PDF report endpoint covers that use case
+            new_binary = body.text.encode("utf-8")
+        else:
+            new_binary = None  # PDF — not regenerated
+
+        if new_binary is not None:
+            if _mongo_db is not None:
+                await _mongo_save_original(doc_id, ext, new_binary)
+            else:
+                (_DOCS_DIR / f"{doc_id}_original{ext}").write_bytes(new_binary)
     except Exception as exc:
         log.warning("Could not update original file for %s: %s", doc_id, exc)
 
-    _save_doc(doc)
+    if _mongo_db is not None:
+        await _mongo_save_doc(doc)
+    else:
+        _save_doc(doc)
     log.info("Document %s updated (reanalyze=%s)", doc_id, body.reanalyze)
     return {
         "id": doc["id"],
@@ -904,7 +1026,10 @@ async def delete_document(doc_id: str):
     if doc_id not in documents:
         raise HTTPException(status_code=404, detail="Document not found.")
     del documents[doc_id]
-    _delete_doc_file(doc_id)
+    if _mongo_db is not None:
+        await _mongo_delete_doc(doc_id)
+    else:
+        _delete_doc_file(doc_id)
     return {"status": "deleted"}
 
 
@@ -930,7 +1055,10 @@ async def clear_chat_history(doc_id: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
     doc["chat_history"] = []
-    _save_doc(doc)
+    if _mongo_db is not None:
+        await _mongo_save_doc(doc)
+    else:
+        _save_doc(doc)
     return {"status": "cleared"}
 
 
