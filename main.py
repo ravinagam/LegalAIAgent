@@ -2,18 +2,20 @@
 Legal AI Agent — FastAPI Backend
 Analyzes legal documents: summaries, clause extraction, risk analysis, AI chat.
 """
+import hashlib
 import json
 import logging
 import os
 import traceback
 import uuid
+from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import AsyncGenerator
 
 import anthropic
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 from pydantic import BaseModel
@@ -47,9 +49,79 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
+# Auth — user store (persisted to users.json) + in-memory sessions
+# ---------------------------------------------------------------------------
+_USERS_FILE = Path(__file__).parent / "users.json"
+users_db: dict[str, dict] = {}      # username → {username, password_hash, email, created_at}
+sessions: dict[str, str]  = {}      # token → username
+
+
+def _load_users() -> None:
+    global users_db
+    if _USERS_FILE.exists():
+        try:
+            users_db = json.loads(_USERS_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            users_db = {}
+
+
+def _save_users() -> None:
+    _USERS_FILE.write_text(json.dumps(users_db, indent=2), encoding="utf-8")
+
+
+def _hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
+def _token_to_user(request: Request) -> str | None:
+    auth = request.headers.get("Authorization", "")
+    token = auth.removeprefix("Bearer ").strip()
+    return sessions.get(token)
+
+
+_load_users()
+
+# ---------------------------------------------------------------------------
 # In-memory document store: {doc_id: {...}}
 # ---------------------------------------------------------------------------
 documents: dict[str, dict] = {}
+
+# ---------------------------------------------------------------------------
+# Document disk persistence
+# ---------------------------------------------------------------------------
+_DOCS_DIR = Path(__file__).parent / "documents"
+_DOCS_DIR.mkdir(exist_ok=True)
+
+
+def _save_doc(doc: dict) -> None:
+    try:
+        (_DOCS_DIR / f"{doc['id']}.json").write_text(
+            json.dumps(doc, indent=2), encoding="utf-8"
+        )
+    except Exception as exc:
+        log.warning("Failed to save doc %s to disk: %s", doc.get("id"), exc)
+
+
+def _delete_doc_file(doc_id: str) -> None:
+    p = _DOCS_DIR / f"{doc_id}.json"
+    try:
+        if p.exists():
+            p.unlink()
+    except Exception as exc:
+        log.warning("Failed to delete doc file %s: %s", doc_id, exc)
+
+
+def _load_docs_from_disk() -> None:
+    for p in sorted(_DOCS_DIR.glob("*.json")):
+        try:
+            doc = json.loads(p.read_text(encoding="utf-8"))
+            documents[doc["id"]] = doc
+            log.info("Loaded doc %s (%s) from disk", doc["id"], doc.get("filename", "?"))
+        except Exception as exc:
+            log.warning("Failed to load doc file %s: %s", p.name, exc)
+
+
+_load_docs_from_disk()
 
 # ---------------------------------------------------------------------------
 # Anthropic client  (async — required for use inside FastAPI async endpoints)
@@ -313,6 +385,7 @@ async def stream_chat_response(
     # Persist conversation history
     doc["chat_history"].append({"role": "user", "content": user_message})
     doc["chat_history"].append({"role": "assistant", "content": full_response})
+    _save_doc(doc)
 
     yield f"data: {json.dumps({'done': True})}\n\n"
 
@@ -320,6 +393,22 @@ async def stream_chat_response(
 # ---------------------------------------------------------------------------
 # Request / Response models
 # ---------------------------------------------------------------------------
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    email: str = ""
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class UpdateDocRequest(BaseModel):
+    text: str
+    reanalyze: bool = False
+
 
 class ChatRequest(BaseModel):
     message: str
@@ -333,8 +422,61 @@ class ClearHistoryRequest(BaseModel):
 # API Routes
 # ---------------------------------------------------------------------------
 
+@app.post("/api/register")
+async def register(body: RegisterRequest):
+    username = body.username.strip().lower()
+    if not username or not body.password:
+        raise HTTPException(status_code=400, detail="Username and password are required.")
+    if len(username) < 3:
+        raise HTTPException(status_code=400, detail="Username must be at least 3 characters.")
+    if len(body.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+    if username in users_db:
+        raise HTTPException(status_code=409, detail="Username already exists.")
+    users_db[username] = {
+        "username": username,
+        "password_hash": _hash_password(body.password),
+        "email": body.email.strip(),
+        "created_at": datetime.now().isoformat(),
+    }
+    _save_users()
+    token = str(uuid.uuid4())
+    sessions[token] = username
+    log.info("New user registered: %s", username)
+    return {"token": token, "username": username}
+
+
+@app.post("/api/login")
+async def login(body: LoginRequest):
+    username = body.username.strip().lower()
+    user = users_db.get(username)
+    if not user or user["password_hash"] != _hash_password(body.password):
+        raise HTTPException(status_code=401, detail="Invalid username or password.")
+    token = str(uuid.uuid4())
+    sessions[token] = username
+    log.info("User logged in: %s", username)
+    return {"token": token, "username": username}
+
+
+@app.post("/api/logout")
+async def logout(request: Request):
+    auth = request.headers.get("Authorization", "")
+    token = auth.removeprefix("Bearer ").strip()
+    sessions.pop(token, None)
+    return {"status": "logged out"}
+
+
+@app.get("/api/me")
+async def me(request: Request):
+    username = _token_to_user(request)
+    if not username:
+        raise HTTPException(status_code=401, detail="Not authenticated.")
+    user = users_db.get(username, {})
+    return {"username": username, "email": user.get("email", "")}
+
+
 @app.post("/api/upload")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(request: Request, file: UploadFile = File(...)):
     """Upload a legal document, extract text, and auto-analyze with Claude."""
     try:
         data = await file.read()
@@ -381,6 +523,8 @@ async def upload_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
 
     doc_id = str(uuid.uuid4())
+    owner = _token_to_user(request) or ""
+    uploaded_at = datetime.now().isoformat()
     documents[doc_id] = {
         "id": doc_id,
         "filename": file.filename,
@@ -388,20 +532,25 @@ async def upload_document(file: UploadFile = File(...)):
         "text": text,
         "analysis": analysis,
         "chat_history": [],
+        "owner": owner,
+        "uploaded_at": uploaded_at,
     }
+    _save_doc(documents[doc_id])
 
-    log.info("Document %s stored successfully", doc_id)
+    log.info("Document %s stored successfully (owner=%s)", doc_id, owner or "anonymous")
     return {
         "id": doc_id,
         "filename": file.filename,
         "size": len(data),
         "analysis": analysis,
+        "uploaded_at": uploaded_at,
     }
 
 
 @app.get("/api/documents")
-async def list_documents():
-    """Return metadata for all uploaded documents (no full text)."""
+async def list_documents(request: Request):
+    """Return metadata for documents owned by the authenticated user."""
+    owner = _token_to_user(request) or ""
     return [
         {
             "id": d["id"],
@@ -410,8 +559,10 @@ async def list_documents():
             "document_type": d["analysis"].get("document_type", "Unknown"),
             "risk_level": d["analysis"].get("risk_level", "Unknown"),
             "parties": d["analysis"].get("parties", []),
+            "uploaded_at": d.get("uploaded_at"),
         }
         for d in documents.values()
+        if not owner or d.get("owner") == owner
     ]
 
 
@@ -427,6 +578,56 @@ async def get_document(doc_id: str):
         "size": doc["size"],
         "analysis": doc["analysis"],
         "chat_history": doc["chat_history"],
+        "uploaded_at": doc.get("uploaded_at"),
+    }
+
+
+@app.get("/api/documents/{doc_id}/text")
+async def get_document_text(doc_id: str):
+    """Return the raw extracted text for a document (for editing)."""
+    doc = documents.get(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    return {"text": doc["text"]}
+
+
+@app.put("/api/documents/{doc_id}")
+async def update_document(doc_id: str, body: UpdateDocRequest):
+    """Update document text and optionally re-analyze with Claude."""
+    doc = documents.get(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    if not body.text.strip():
+        raise HTTPException(status_code=400, detail="Document text cannot be empty.")
+
+    doc["text"] = body.text
+    doc["size"] = len(body.text.encode("utf-8"))
+
+    if body.reanalyze:
+        try:
+            analysis = await analyze_document(body.text, doc["filename"])
+        except anthropic.AuthenticationError:
+            raise HTTPException(status_code=401, detail="Invalid Anthropic API key.")
+        except anthropic.RateLimitError:
+            raise HTTPException(status_code=429, detail="Anthropic rate limit reached. Wait a moment and retry.")
+        except anthropic.APIConnectionError as exc:
+            raise HTTPException(status_code=503, detail=f"Cannot reach Anthropic API: {exc}")
+        except Exception as exc:
+            log.error("Re-analysis error:\n%s", traceback.format_exc())
+            raise HTTPException(status_code=500, detail=f"Re-analysis failed: {exc}")
+        doc["analysis"] = analysis
+        doc["chat_history"] = []   # clear chat — document content changed
+
+    _save_doc(doc)
+    log.info("Document %s updated (reanalyze=%s)", doc_id, body.reanalyze)
+    return {
+        "id": doc["id"],
+        "filename": doc["filename"],
+        "size": doc["size"],
+        "analysis": doc["analysis"],
+        "chat_history": doc["chat_history"],
+        "uploaded_at": doc.get("uploaded_at"),
     }
 
 
@@ -436,6 +637,7 @@ async def delete_document(doc_id: str):
     if doc_id not in documents:
         raise HTTPException(status_code=404, detail="Document not found.")
     del documents[doc_id]
+    _delete_doc_file(doc_id)
     return {"status": "deleted"}
 
 
@@ -461,6 +663,7 @@ async def clear_chat_history(doc_id: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
     doc["chat_history"] = []
+    _save_doc(doc)
     return {"status": "cleared"}
 
 

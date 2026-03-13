@@ -377,9 +377,224 @@
   .toast.show { transform: translateY(0); opacity: 1; }
   .toast.error { background: var(--red); }
   .toast.success { background: var(--green); }
+  /* ── Edit modal ────────────────────────────────────────────────────────── */
+  .edit-modal { width: 720px; max-width: 95vw; }
+  .edit-textarea {
+    width: 100%; height: 52vh; resize: vertical; border: 1.5px solid var(--border);
+    border-radius: 8px; padding: 12px 14px; font-family: 'Inter', monospace;
+    font-size: 13px; line-height: 1.7; color: var(--text); background: var(--bg);
+    outline: none; transition: border .15s; box-sizing: border-box;
+  }
+  .edit-textarea:focus { border-color: var(--blue); }
+  .edit-charcount { font-size: 12px; color: var(--text-muted); margin-top: 6px; text-align: right; }
+  .btn-warning { background: var(--amber); color: #fff; border-color: var(--amber); }
+  .btn-warning:hover { background: #d97706; border-color: #d97706; }
+  /* ── Auth overlay ──────────────────────────────────────────────────────── */
+  .auth-overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 2000;
+  }
+  .auth-overlay.hidden { display: none; }
+  .auth-card {
+    background: var(--card); border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15); width: 400px; padding: 40px 36px;
+  }
+  .auth-logo { text-align: center; margin-bottom: 28px; }
+  .auth-logo-icon {
+    width: 52px; height: 52px; background: var(--blue); border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; margin: 0 auto 12px;
+  }
+  .auth-logo-text { font-size: 20px; font-weight: 700; color: var(--text); }
+  .auth-logo-sub  { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+  .auth-tabs { display: flex; margin-bottom: 24px; border-bottom: 2px solid var(--border); }
+  .auth-tab {
+    flex: 1; padding: 10px; text-align: center; cursor: pointer;
+    font-size: 14px; font-weight: 600; color: var(--text-muted);
+    border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s;
+  }
+  .auth-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .auth-field { margin-bottom: 16px; }
+  .auth-label { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .auth-input {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 14px; outline: none; transition: border .15s;
+    font-family: 'Inter', sans-serif; background: var(--bg);
+  }
+  .auth-input:focus { border-color: var(--blue); }
+  .auth-btn {
+    width: 100%; padding: 11px; background: var(--blue); color: #fff;
+    border: none; border-radius: 8px; font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-top: 4px; transition: background .15s;
+  }
+  .auth-btn:hover { background: var(--blue-dark); }
+  .auth-error {
+    color: var(--red); font-size: 13px; margin-bottom: 12px;
+    padding: 8px 12px; background: #fee2e2; border-radius: 6px; display: none;
+  }
+  .auth-error.show { display: block; }
+  /* ── Library page ──────────────────────────────────────────────────────── */
+  .library-overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    z-index: 1500; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .library-overlay.hidden { display: none; }
+  .library-header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 16px; flex-shrink: 0;
+  }
+  .library-title { font-size: 16px; font-weight: 700; color: var(--text); white-space: nowrap; }
+  .library-search-wrap { flex: 1; max-width: 440px; }
+  .library-search {
+    width: 100%; padding: 8px 12px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 13px; outline: none; transition: border .15s;
+    font-family: 'Inter', sans-serif; background: var(--bg);
+  }
+  .library-search:focus { border-color: var(--blue); }
+  .lib-filter-bar { display: flex; gap: 6px; align-items: center; }
+  .lib-filter-btn {
+    padding: 4px 11px; border: 1.5px solid var(--border); border-radius: 20px;
+    background: none; font-size: 12px; font-weight: 500; cursor: pointer;
+    color: var(--text-muted); transition: all .15s; white-space: nowrap;
+  }
+  .lib-filter-btn.active, .lib-filter-btn:hover { border-color: var(--blue); color: var(--blue); background: #eff6ff; }
+  .library-back-btn {
+    padding: 6px 14px; background: none; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 13px; cursor: pointer; color: var(--text-muted);
+    transition: all .15s; white-space: nowrap;
+  }
+  .library-back-btn:hover { border-color: var(--text); color: var(--text); }
+  .library-body { flex: 1; overflow-y: auto; padding: 24px; }
+  .library-stats { font-size: 13px; color: var(--text-muted); margin-bottom: 18px; }
+  .lib-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px;
+  }
+  .lib-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 18px; cursor: pointer;
+    transition: box-shadow .15s, border-color .15s, transform .1s;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .lib-card:hover { box-shadow: var(--shadow-md); border-color: var(--blue); transform: translateY(-1px); }
+  .lib-card-top { display: flex; align-items: flex-start; gap: 12px; }
+  .lib-card-icon { font-size: 30px; flex-shrink: 0; }
+  .lib-card-info { flex: 1; min-width: 0; }
+  .lib-card-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; word-break: break-word; }
+  .lib-card-type { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .lib-card-parties { font-size: 11px; color: var(--text-muted); }
+  .lib-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+  .lib-card-meta { font-size: 11px; color: var(--text-muted); }
+  .lib-card-actions { display: flex; gap: 6px; }
+  .lib-btn-open {
+    padding: 5px 12px; background: var(--blue); color: #fff; border: none;
+    border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s;
+  }
+  .lib-btn-open:hover { background: var(--blue-dark); }
+  .lib-btn-del {
+    padding: 5px 8px; background: none; border: 1.5px solid var(--border);
+    border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted); transition: all .15s;
+  }
+  .lib-btn-del:hover { border-color: var(--red); color: var(--red); }
+  .lib-empty { text-align: center; padding: 80px 20px; grid-column: 1 / -1; }
+  .lib-empty-icon { font-size: 52px; opacity: .35; margin-bottom: 16px; }
+  .lib-empty-title { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .lib-empty-sub { font-size: 13px; color: var(--text-muted); }
+  /* Library button in sidebar */
+  .btn-library {
+    width: 100%; padding: 8px 14px; background: rgba(255,255,255,.06); color: #94a3b8;
+    border: 1px solid rgba(255,255,255,.1); border-radius: 8px; cursor: pointer; font-size: 13px;
+    font-weight: 500; display: flex; align-items: center; justify-content: center;
+    gap: 6px; transition: all .15s; margin-top: 8px;
+  }
+  .btn-library:hover { background: rgba(255,255,255,.12); color: #e2e8f0; }
+  /* User info in topbar */
+  .user-badge { display: flex; align-items: center; gap: 8px; }
+  .user-avatar {
+    width: 28px; height: 28px; background: var(--blue); color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+  }
+  .user-name { font-size: 13px; color: var(--text-muted); }
+  .btn-logout {
+    padding: 4px 10px; background: none; border: 1.5px solid var(--border);
+    border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--text-muted);
+    transition: all .15s;
+  }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
 </style>
 </head>
 <body>
+<!-- ── Auth overlay ─────────────────────────────────────────────────────── -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">⚖</div>
+      <div class="auth-logo-text">Legal AI Agent</div>
+      <div class="auth-logo-sub">Powered by Claude</div>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="authTabLogin" onclick="switchAuthTab('login')">Sign In</div>
+      <div class="auth-tab" id="authTabRegister" onclick="switchAuthTab('register')">Register</div>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <!-- Login form -->
+    <div id="formLogin">
+      <div class="auth-field">
+        <label class="auth-label">Username</label>
+        <input class="auth-input" id="loginUsername" type="text" placeholder="Enter your username"
+               autocomplete="username" onkeydown="if(event.key==='Enter') doLogin()" />
+      </div>
+      <div class="auth-field">
+        <label class="auth-label">Password</label>
+        <input class="auth-input" id="loginPassword" type="password" placeholder="Enter your password"
+               autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()" />
+      </div>
+      <button class="auth-btn" onclick="doLogin()">Sign In</button>
+    </div>
+    <!-- Register form -->
+    <div id="formRegister" style="display:none">
+      <div class="auth-field">
+        <label class="auth-label">Username</label>
+        <input class="auth-input" id="regUsername" type="text" placeholder="Choose a username"
+               autocomplete="username" />
+      </div>
+      <div class="auth-field">
+        <label class="auth-label">Email <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+        <input class="auth-input" id="regEmail" type="email" placeholder="you@example.com"
+               autocomplete="email" />
+      </div>
+      <div class="auth-field">
+        <label class="auth-label">Password</label>
+        <input class="auth-input" id="regPassword" type="password" placeholder="At least 6 characters"
+               autocomplete="new-password" onkeydown="if(event.key==='Enter') doRegister()" />
+      </div>
+      <button class="auth-btn" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Documents Library page ────────────────────────────────────────────── -->
+<div class="library-overlay hidden" id="libraryOverlay">
+  <div class="library-header">
+    <div class="library-title">📂 My Documents</div>
+    <div class="library-search-wrap">
+      <input class="library-search" id="libSearch" type="text"
+             placeholder="Search by filename, type, or party…" oninput="renderLibrary()" />
+    </div>
+    <div class="lib-filter-bar">
+      <button class="lib-filter-btn active" data-risk="" onclick="setLibFilter('')">All</button>
+      <button class="lib-filter-btn" data-risk="High"   onclick="setLibFilter('High')">🔴 High</button>
+      <button class="lib-filter-btn" data-risk="Medium" onclick="setLibFilter('Medium')">🟡 Medium</button>
+      <button class="lib-filter-btn" data-risk="Low"    onclick="setLibFilter('Low')">🟢 Low</button>
+    </div>
+    <button class="library-back-btn" onclick="closeLibrary()">← Back to Analyzer</button>
+  </div>
+  <div class="library-body">
+    <div class="library-stats" id="libStats"></div>
+    <div class="lib-grid" id="libGrid"></div>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- ── Sidebar ───────────────────────────────────────────────────────── -->
@@ -395,6 +610,7 @@
       <button class="btn-upload" onclick="openUpload()">
         <span style="font-size:16px">+</span> Upload Document
       </button>
+      <button class="btn-library" onclick="openLibrary()">📂 My Documents</button>
     </div>
 
     <div class="sidebar-search">
@@ -415,7 +631,14 @@
         <div class="topbar-title" id="topbarTitle">Legal AI Agent</div>
         <div class="topbar-meta" id="topbarMeta">Upload a document to get started</div>
       </div>
-      <div class="topbar-actions" id="topbarActions"></div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="user-badge" id="userBadge" style="display:none">
+          <div class="user-avatar" id="userAvatar"></div>
+          <span class="user-name" id="userName"></span>
+          <button class="btn-logout" onclick="doLogout()">Logout</button>
+        </div>
+        <div class="topbar-actions" id="topbarActions"></div>
+      </div>
     </div>
 
     <!-- Content -->
@@ -531,6 +754,22 @@
 
 </div>
 
+<!-- ── Edit Document Modal ───────────────────────────────────────────────── -->
+<div class="overlay" id="editOverlay" onclick="closeEdit(event)">
+  <div class="modal edit-modal" onclick="event.stopPropagation()">
+    <div class="modal-title">✏️ Edit Document Text</div>
+    <div class="modal-sub">Make changes to the extracted text. Use <strong>Save & Re-analyze</strong> to update the AI analysis after edits.</div>
+    <textarea class="edit-textarea" id="editTextarea" spellcheck="true"
+              oninput="updateEditCharCount()"></textarea>
+    <div class="edit-charcount" id="editCharCount"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEdit()">Cancel</button>
+      <button class="btn btn-warning" id="editSaveBtn" onclick="saveEdit(false)">Save Text Only</button>
+      <button class="btn btn-primary" id="editReanalyzeBtn" onclick="saveEdit(true)">Save &amp; Re-analyze</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Upload Modal ──────────────────────────────────────────────────────── -->
 <div class="overlay" id="uploadOverlay" onclick="closeUpload(event)">
   <div class="modal" onclick="event.stopPropagation()">
@@ -574,15 +813,129 @@ let currentDoc    = null;
 let selectedFile  = null;
 let chatStreaming  = false;
 
-/* ── Init ───────────────────────────────────────────────────────────────── */
-(async () => { await loadDocs(); })();
-
-/* ── API helpers ────────────────────────────────────────────────────────── */
+/* ── Auth ───────────────────────────────────────────────────────────────── */
 const API = '';   // empty = same origin
 
+function getToken() { return localStorage.getItem('auth_token') || ''; }
+
+function authHeaders(extra = {}) {
+  const token = getToken();
+  return token ? { 'Authorization': `Bearer ${token}`, ...extra } : { ...extra };
+}
+
+function showAuthOverlay() {
+  document.getElementById('authOverlay').classList.remove('hidden');
+}
+
+function hideAuthOverlay() {
+  document.getElementById('authOverlay').classList.add('hidden');
+}
+
+function setAuthError(msg) {
+  const el = document.getElementById('authError');
+  el.textContent = msg;
+  el.classList.toggle('show', !!msg);
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('formLogin').style.display    = tab === 'login'    ? '' : 'none';
+  document.getElementById('formRegister').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('authTabLogin').classList.toggle('active',    tab === 'login');
+  document.getElementById('authTabRegister').classList.toggle('active', tab === 'register');
+  setAuthError('');
+}
+
+function onAuthSuccess(data) {
+  localStorage.setItem('auth_token', data.token);
+  localStorage.setItem('auth_username', data.username);
+  hideAuthOverlay();
+  showUserBadge(data.username);
+  loadDocs();
+}
+
+function showUserBadge(username) {
+  document.getElementById('userBadge').style.display = '';
+  document.getElementById('userAvatar').textContent  = username[0].toUpperCase();
+  document.getElementById('userName').textContent    = username;
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!username || !password) { setAuthError('Please enter username and password.'); return; }
+  try {
+    const r = await fetch(`${API}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await r.json();
+    if (!r.ok) { setAuthError(data.detail || 'Login failed.'); return; }
+    onAuthSuccess(data);
+  } catch { setAuthError('Network error. Please try again.'); }
+}
+
+async function doRegister() {
+  const username = document.getElementById('regUsername').value.trim();
+  const email    = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  if (!username || !password) { setAuthError('Username and password are required.'); return; }
+  try {
+    const r = await fetch(`${API}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password }),
+    });
+    const data = await r.json();
+    if (!r.ok) { setAuthError(data.detail || 'Registration failed.'); return; }
+    onAuthSuccess(data);
+  } catch { setAuthError('Network error. Please try again.'); }
+}
+
+async function doLogout() {
+  const token = getToken();
+  if (token) {
+    await fetch(`${API}/api/logout`, { method: 'POST', headers: authHeaders() }).catch(() => {});
+  }
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('auth_username');
+  document.getElementById('userBadge').style.display = 'none';
+  allDocs = []; currentDocId = null; currentDoc = null;
+  renderDocList();
+  document.getElementById('docView').style.display    = 'none';
+  document.getElementById('emptyState').style.display = 'flex';
+  document.getElementById('topbarTitle').textContent  = 'Legal AI Agent';
+  document.getElementById('topbarMeta').textContent   = 'Upload a document to get started';
+  document.getElementById('topbarActions').innerHTML  = '';
+  showAuthOverlay();
+}
+
+/* ── Init ───────────────────────────────────────────────────────────────── */
+(async () => {
+  const token    = getToken();
+  const username = localStorage.getItem('auth_username');
+  if (token) {
+    try {
+      const r = await fetch(`${API}/api/me`, { headers: authHeaders() });
+      if (r.ok) {
+        const me = await r.json();
+        hideAuthOverlay();
+        showUserBadge(me.username);
+        await loadDocs();
+        return;
+      }
+    } catch { }
+    // token invalid — clear it
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_username');
+  }
+  showAuthOverlay();
+})();
+
+/* ── API helpers ────────────────────────────────────────────────────────── */
 async function loadDocs() {
   try {
-    const r = await fetch(`${API}/api/documents`);
+    const r = await fetch(`${API}/api/documents`, { headers: authHeaders() });
     allDocs  = await r.json();
     renderDocList();
     if (allDocs.length && !currentDocId) selectDoc(allDocs[0].id);
@@ -590,13 +943,13 @@ async function loadDocs() {
 }
 
 async function getDoc(id) {
-  const r = await fetch(`${API}/api/documents/${id}`);
+  const r = await fetch(`${API}/api/documents/${id}`, { headers: authHeaders() });
   if (!r.ok) throw new Error('Not found');
   return r.json();
 }
 
 async function deleteDocApi(id) {
-  await fetch(`${API}/api/documents/${id}`, { method: 'DELETE' });
+  await fetch(`${API}/api/documents/${id}`, { method: 'DELETE', headers: authHeaders() });
 }
 
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
@@ -669,7 +1022,8 @@ function renderDocView() {
   document.getElementById('topbarMeta').textContent  =
     `${a.document_type || 'Unknown Type'}  ·  ${formatBytes(currentDoc.size)}`;
   document.getElementById('topbarActions').innerHTML =
-    `<span class="badge badge-${(a.risk_level||'unknown').toLowerCase()}">${riskDot(a.risk_level)} ${a.risk_level || 'Unknown'} Risk</span>`;
+    `<button class="btn" style="font-size:12px;padding:5px 13px;" onclick="openEdit()">✏️ Edit</button>
+     <span class="badge badge-${(a.risk_level||'unknown').toLowerCase()}">${riskDot(a.risk_level)} ${a.risk_level || 'Unknown'} Risk</span>`;
 
   switchTab('overview');
   renderOverview(a);
@@ -834,7 +1188,7 @@ async function sendMessage() {
   try {
     const resp = await fetch(`${API}/api/documents/${currentDocId}/chat`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body:    JSON.stringify({ message: text }),
     });
 
@@ -897,7 +1251,7 @@ function scrollChatBottom() {
 
 async function clearChat() {
   if (!currentDocId) return;
-  await fetch(`${API}/api/documents/${currentDocId}/chat`, { method: 'DELETE' });
+  await fetch(`${API}/api/documents/${currentDocId}/chat`, { method: 'DELETE', headers: authHeaders() });
   if (currentDoc) currentDoc.chat_history = [];
   const msgs = document.getElementById('chatMessages');
   msgs.innerHTML = '';
@@ -921,6 +1275,204 @@ function handleChatKey(e) {
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+/* ── Edit Document ──────────────────────────────────────────────────────── */
+async function openEdit() {
+  if (!currentDocId) return;
+  const ta   = document.getElementById('editTextarea');
+  const over = document.getElementById('editOverlay');
+  ta.value   = '';
+  updateEditCharCount();
+  over.classList.add('visible');
+  ta.disabled = true;
+  ta.placeholder = 'Loading document text…';
+  try {
+    const r    = await fetch(`${API}/api/documents/${currentDocId}/text`, { headers: authHeaders() });
+    const data = await r.json();
+    ta.value   = data.text || '';
+    ta.disabled = false;
+    ta.placeholder = '';
+    ta.focus();
+    updateEditCharCount();
+  } catch (e) {
+    showToast('Failed to load document text', 'error');
+    over.classList.remove('visible');
+  }
+}
+
+function closeEdit(e) {
+  if (!e || e.target === document.getElementById('editOverlay')) {
+    document.getElementById('editOverlay').classList.remove('visible');
+  }
+}
+
+function updateEditCharCount() {
+  const len = document.getElementById('editTextarea').value.length;
+  document.getElementById('editCharCount').textContent =
+    `${len.toLocaleString()} characters`;
+}
+
+async function saveEdit(reanalyze) {
+  const text = document.getElementById('editTextarea').value;
+  if (!text.trim()) { showToast('Document text cannot be empty', 'error'); return; }
+
+  const saveBtn      = document.getElementById('editSaveBtn');
+  const reanalyzeBtn = document.getElementById('editReanalyzeBtn');
+  saveBtn.disabled   = true;
+  reanalyzeBtn.disabled = true;
+
+  if (reanalyze) {
+    document.getElementById('editOverlay').classList.remove('visible');
+    document.getElementById('progressOverlay').classList.add('visible');
+    document.querySelector('.progress-title').textContent = 'Saving & Re-analyzing…';
+  } else {
+    reanalyzeBtn.textContent = 'Saving…';
+    saveBtn.textContent      = 'Saving…';
+  }
+
+  try {
+    const r = await fetch(`${API}/api/documents/${currentDocId}`, {
+      method:  'PUT',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body:    JSON.stringify({ text, reanalyze }),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ detail: r.statusText }));
+      throw new Error(err.detail || `Server error ${r.status}`);
+    }
+    const updated = await r.json();
+
+    // Merge into currentDoc
+    currentDoc = { ...currentDoc, ...updated, text };
+
+    // Update sidebar entry size
+    const entry = allDocs.find(d => d.id === currentDocId);
+    if (entry) {
+      entry.document_type = updated.analysis.document_type;
+      entry.risk_level    = updated.analysis.risk_level;
+      entry.parties       = updated.analysis.parties;
+      entry.size          = updated.size;
+    }
+
+    renderDocList(document.getElementById('searchBox').value);
+    renderDocView();
+    closeEdit();
+    showToast(reanalyze ? '✓ Saved and re-analyzed' : '✓ Document text saved', 'success');
+  } catch (e) {
+    showToast('Save failed: ' + e.message, 'error');
+    document.getElementById('editOverlay').classList.add('visible');
+  } finally {
+    document.getElementById('progressOverlay').classList.remove('visible');
+    document.querySelector('.progress-title').textContent = 'Analyzing Document…';
+    saveBtn.disabled = false;
+    reanalyzeBtn.disabled = false;
+    saveBtn.textContent = 'Save Text Only';
+    reanalyzeBtn.textContent = 'Save & Re-analyze';
+  }
+}
+
+/* ── Documents Library ──────────────────────────────────────────────────── */
+let libRiskFilter = '';
+
+function openLibrary() {
+  document.getElementById('libSearch').value = '';
+  libRiskFilter = '';
+  document.querySelectorAll('.lib-filter-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.risk === ''));
+  renderLibrary();
+  document.getElementById('libraryOverlay').classList.remove('hidden');
+}
+
+function closeLibrary() {
+  document.getElementById('libraryOverlay').classList.add('hidden');
+}
+
+function setLibFilter(risk) {
+  libRiskFilter = risk;
+  document.querySelectorAll('.lib-filter-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.risk === risk));
+  renderLibrary();
+}
+
+function renderLibrary() {
+  const q = document.getElementById('libSearch').value.toLowerCase();
+  const items = allDocs.filter(d => {
+    const matchQ = !q
+      || d.filename.toLowerCase().includes(q)
+      || (d.document_type || '').toLowerCase().includes(q)
+      || (d.parties || []).join(' ').toLowerCase().includes(q);
+    const matchR = !libRiskFilter || d.risk_level === libRiskFilter;
+    return matchQ && matchR;
+  });
+
+  const total = allDocs.length;
+  document.getElementById('libStats').textContent =
+    `${total} document${total !== 1 ? 's' : ''} total · showing ${items.length}`;
+
+  const grid = document.getElementById('libGrid');
+  if (!items.length) {
+    grid.innerHTML = `
+      <div class="lib-empty">
+        <div class="lib-empty-icon">📂</div>
+        <div class="lib-empty-title">${q || libRiskFilter ? 'No matching documents' : 'No documents yet'}</div>
+        <div class="lib-empty-sub">${q || libRiskFilter
+          ? 'Try a different search or filter.'
+          : 'Upload a legal document to get started.'}</div>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map(d => {
+    const dateStr = d.uploaded_at
+      ? new Date(d.uploaded_at).toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' })
+      : '';
+    const partiesStr = (d.parties || []).length
+      ? `<div class="lib-card-parties">👥 ${esc(d.parties.slice(0,2).join(', '))}${d.parties.length > 2 ? ' +' + (d.parties.length - 2) + ' more' : ''}</div>`
+      : '';
+    return `
+    <div class="lib-card" onclick="openDocFromLibrary('${d.id}')">
+      <div class="lib-card-top">
+        <div class="lib-card-icon">${docIcon(d.document_type)}</div>
+        <div class="lib-card-info">
+          <div class="lib-card-name">${esc(d.filename)}</div>
+          <div class="lib-card-type">${esc(d.document_type || 'Unknown Type')}</div>
+        </div>
+        <span class="badge badge-${(d.risk_level || 'unknown').toLowerCase()}">${riskDot(d.risk_level)} ${d.risk_level || 'Unknown'}</span>
+      </div>
+      ${partiesStr}
+      <div class="lib-card-footer">
+        <div class="lib-card-meta">${formatBytes(d.size)}${dateStr ? ' · ' + dateStr : ''}</div>
+        <div class="lib-card-actions" onclick="event.stopPropagation()">
+          <button class="lib-btn-open" onclick="openDocFromLibrary('${d.id}')">Open</button>
+          <button class="lib-btn-del" onclick="removeDocFromLibrary('${d.id}')" title="Delete">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openDocFromLibrary(id) {
+  closeLibrary();
+  await selectDoc(id);
+}
+
+async function removeDocFromLibrary(id) {
+  if (!confirm('Delete this document?')) return;
+  await deleteDocApi(id);
+  allDocs = allDocs.filter(d => d.id !== id);
+  if (currentDocId === id) {
+    currentDocId = null;
+    currentDoc   = null;
+    document.getElementById('docView').style.display    = 'none';
+    document.getElementById('emptyState').style.display = 'flex';
+    document.getElementById('topbarTitle').textContent  = 'Legal AI Agent';
+    document.getElementById('topbarMeta').textContent   = 'Upload a document to get started';
+    document.getElementById('topbarActions').innerHTML  = '';
+  }
+  renderDocList();
+  renderLibrary();
+  showToast('Document deleted');
 }
 
 /* ── Tab switching ──────────────────────────────────────────────────────── */
@@ -999,7 +1551,7 @@ async function uploadFile() {
 
   // ── Step 1: fetch & parse (network + server errors) ──────────────────
   try {
-    const r = await fetch(`${API}/api/upload`, { method: 'POST', body: fd });
+    const r = await fetch(`${API}/api/upload`, { method: 'POST', headers: authHeaders(), body: fd });
     if (!r.ok) {
       const err = await r.json().catch(() => ({ detail: r.statusText }));
       const msg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
@@ -1027,6 +1579,7 @@ async function uploadFile() {
       risk_level:    doc.analysis.risk_level,
       parties:       doc.analysis.parties,
       size:          doc.size,
+      uploaded_at:   doc.uploaded_at,
     });
     renderDocList();
     showToast(`✓ "${doc.filename}" analyzed`, 'success');
