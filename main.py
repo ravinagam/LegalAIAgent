@@ -755,7 +755,8 @@ async def login(body: LoginRequest):
 async def logout(request: Request):
     auth = request.headers.get("Authorization", "")
     token = auth.removeprefix("Bearer ").strip()
-    sessions.pop(token, None)
+    username = sessions.pop(token, None)
+    log.info("User logged out: %s", username or "unknown")
     return {"status": "logged out"}
 
 
@@ -771,10 +772,12 @@ async def me(request: Request):
 @app.post("/api/upload")
 async def upload_document(request: Request, file: UploadFile = File(...)):
     """Upload a legal document, extract text, and auto-analyze with Claude."""
+    log.info("Upload request received: filename='%s'", file.filename)
     try:
         data = await file.read()
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"Failed to read uploaded file: {exc}")
+    log.info("File read: %d bytes", len(data))
 
     if len(data) > 20 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File too large (max 20 MB).")
@@ -815,6 +818,12 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
         log.error("Unexpected analysis error:\n%s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Analysis failed: {exc}")
 
+    log.info(
+        "Analysis complete: doc_type='%s', risk_level='%s', clauses=%d",
+        analysis.get("document_type", "Unknown"),
+        analysis.get("risk_level", "Unknown"),
+        len(analysis.get("clauses", [])),
+    )
     doc_id = str(uuid.uuid4())
     owner = _token_to_user(request) or ""
     uploaded_at = datetime.now().isoformat()
@@ -911,6 +920,7 @@ async def download_original_file(doc_id: str):
             binary = p.read_bytes()
 
     if binary is not None:
+        log.info("Serving binary download for doc %s (%s, %d bytes)", doc_id, ext, len(binary))
         return _Resp(
             content=binary,
             media_type=mime,
@@ -920,6 +930,7 @@ async def download_original_file(doc_id: str):
     # Fallback — no binary stored: serve extracted text as .txt
     stem = Path(doc["filename"]).stem
     safe_stem = "".join(c if c.isalnum() or c in "-_ " else "_" for c in stem).strip() or "document"
+    log.info("Serving text fallback for doc %s (no binary found for ext '%s')", doc_id, ext)
     return PlainTextResponse(
         content=doc["text"],
         headers={"Content-Disposition": f'attachment; filename="{safe_stem}.txt"'},
@@ -937,11 +948,13 @@ async def download_pdf_report(doc_id: str):
     doc = documents.get(doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
+    log.info("Generating PDF report for doc %s ('%s')", doc_id, doc.get("filename"))
     try:
         pdf_bytes = _generate_pdf_report(doc)
     except Exception as exc:
         log.error("PDF report generation failed: %s", exc)
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {exc}")
+    log.info("PDF report generated: %d bytes", len(pdf_bytes))
 
     stem = Path(doc["filename"]).stem
     safe = "".join(c if c.isalnum() or c in "-_ " else "_" for c in stem).strip() or "document"
@@ -1028,11 +1041,13 @@ async def delete_document(doc_id: str):
     """Remove a document from memory."""
     if doc_id not in documents:
         raise HTTPException(status_code=404, detail="Document not found.")
+    filename = documents[doc_id].get("filename", "unknown")
     del documents[doc_id]
     if _mongo_db is not None:
         await _mongo_delete_doc(doc_id)
     else:
         _delete_doc_file(doc_id)
+    log.info("Document deleted: %s ('%s')", doc_id, filename)
     return {"status": "deleted"}
 
 
@@ -1041,6 +1056,7 @@ async def chat_with_document(doc_id: str, body: ChatRequest):
     """Stream an AI response about the document as Server-Sent Events."""
     if doc_id not in documents:
         raise HTTPException(status_code=404, detail="Document not found.")
+    log.info("Chat request for doc %s: %.80r", doc_id, body.message)
     return StreamingResponse(
         stream_chat_response(doc_id, body.message),
         media_type="text/event-stream",
@@ -1062,6 +1078,7 @@ async def clear_chat_history(doc_id: str):
         await _mongo_save_doc(doc)
     else:
         _save_doc(doc)
+    log.info("Chat history cleared for doc %s", doc_id)
     return {"status": "cleared"}
 
 
