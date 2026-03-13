@@ -377,6 +377,22 @@
   .toast.show { transform: translateY(0); opacity: 1; }
   .toast.error { background: var(--red); }
   .toast.success { background: var(--green); }
+  /* ── Download dropdown ─────────────────────────────────────────────────── */
+  .dropdown { position: relative; display: inline-block; }
+  .dropdown-menu {
+    position: absolute; right: 0; top: calc(100% + 6px);
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: var(--shadow-md); z-index: 500; min-width: 200px;
+    display: none; flex-direction: column; overflow: hidden;
+  }
+  .dropdown.open .dropdown-menu { display: flex; }
+  .dropdown-item {
+    padding: 10px 14px; font-size: 13px; cursor: pointer; color: var(--text);
+    display: flex; align-items: center; gap: 10px; border: none; background: none;
+    text-align: left; width: 100%; transition: background .1s;
+  }
+  .dropdown-item:hover { background: var(--bg); }
+  .dropdown-item-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
   /* ── Edit modal ────────────────────────────────────────────────────────── */
   .edit-modal { width: 720px; max-width: 95vw; }
   .edit-textarea {
@@ -1021,8 +1037,26 @@ function renderDocView() {
   document.getElementById('topbarTitle').textContent = currentDoc.filename;
   document.getElementById('topbarMeta').textContent  =
     `${a.document_type || 'Unknown Type'}  ·  ${formatBytes(currentDoc.size)}`;
+  const origExt  = (currentDoc.filename.match(/\.[^.]+$/) || [''])[0].toLowerCase();
+  const EXT_ICONS = {'.pdf':'📕','.docx':'📘','.doc':'📘','.txt':'📝','.md':'📝'};
+  const EXT_NAMES = {'.pdf':'PDF Document','.docx':'Word Document','.doc':'Word Document','.txt':'Text File','.md':'Markdown File'};
+  const origIcon  = EXT_ICONS[origExt] || '📄';
+  const origLabel = EXT_NAMES[origExt] || (origExt ? origExt.toUpperCase().slice(1) + ' File' : 'Original File');
   document.getElementById('topbarActions').innerHTML =
     `<button class="btn" style="font-size:12px;padding:5px 13px;" onclick="openEdit()">✏️ Edit</button>
+     <div class="dropdown" id="dlDropdown">
+       <button class="btn" style="font-size:12px;padding:5px 13px;" onclick="toggleDownloadMenu(event)">⬇ Download ▾</button>
+       <div class="dropdown-menu">
+         <button class="dropdown-item" onclick="downloadOriginal()">
+           <span style="font-size:18px">${origIcon}</span>
+           <div><div>${origLabel}</div><div class="dropdown-item-sub">${esc(currentDoc.filename)}</div></div>
+         </button>
+         <button class="dropdown-item" onclick="downloadReport()">
+           <span style="font-size:18px">📊</span>
+           <div><div>Analysis Report</div><div class="dropdown-item-sub">AI analysis as PDF</div></div>
+         </button>
+       </div>
+     </div>
      <span class="badge badge-${(a.risk_level||'unknown').toLowerCase()}">${riskDot(a.risk_level)} ${a.risk_level || 'Unknown'} Risk</span>`;
 
   switchTab('overview');
@@ -1275,6 +1309,60 @@ function handleChatKey(e) {
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+}
+
+/* ── Download ───────────────────────────────────────────────────────────── */
+function toggleDownloadMenu(e) {
+  e.stopPropagation();
+  document.getElementById('dlDropdown').classList.toggle('open');
+}
+
+// Close dropdown on any outside click
+document.addEventListener('click', () => {
+  document.getElementById('dlDropdown')?.classList.remove('open');
+});
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href    = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadOriginal() {
+  document.getElementById('dlDropdown').classList.remove('open');
+  if (!currentDocId) return;
+  try {
+    const r = await fetch(`${API}/api/documents/${currentDocId}/download`, { headers: authHeaders() });
+    if (!r.ok) throw new Error(await r.text());
+    const blob = await r.blob();
+    // Use the server-provided filename from Content-Disposition (respects fallback .txt extension)
+    const cd = r.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : (currentDoc?.filename || 'document');
+    triggerDownload(blob, filename);
+  } catch (e) {
+    showToast('Download failed: ' + e.message, 'error');
+  }
+}
+
+async function downloadReport() {
+  document.getElementById('dlDropdown').classList.remove('open');
+  if (!currentDocId) return;
+  try {
+    const r = await fetch(`${API}/api/documents/${currentDocId}/report`, { headers: authHeaders() });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ detail: r.statusText }));
+      throw new Error(err.detail || `Server error ${r.status}`);
+    }
+    const blob = await r.blob();
+    const stem = (currentDoc?.filename || 'document').replace(/\.[^.]+$/, '');
+    triggerDownload(blob, `${stem}_analysis.pdf`);
+  } catch (e) {
+    showToast('Report download failed: ' + e.message, 'error');
+  }
 }
 
 /* ── Edit Document ──────────────────────────────────────────────────────── */
