@@ -130,6 +130,9 @@ async def startup_check():
     if _MONGODB_URI:
         mongo_ok = await _init_mongo()
         if mongo_ok:
+            log.info("=" * 50)
+            log.info("MongoDB connection successful!")
+            log.info("=" * 50)
             users_db.clear()
             documents.clear()
             await _mongo_load_users()
