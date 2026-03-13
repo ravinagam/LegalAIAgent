@@ -50,9 +50,15 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
+# Storage root — use DATA_DIR env var if set (e.g. Render persistent disk)
+# ---------------------------------------------------------------------------
+_DATA_ROOT = Path(os.getenv("DATA_DIR", str(Path(__file__).parent)))
+_DATA_ROOT.mkdir(parents=True, exist_ok=True)
+
+# ---------------------------------------------------------------------------
 # Auth — user store (persisted to users.json) + in-memory sessions
 # ---------------------------------------------------------------------------
-_USERS_FILE = Path(__file__).parent / "users.json"
+_USERS_FILE = _DATA_ROOT / "users.json"
 users_db: dict[str, dict] = {}      # username → {username, password_hash, email, created_at}
 sessions: dict[str, str]  = {}      # token → username
 
@@ -90,7 +96,7 @@ documents: dict[str, dict] = {}
 # ---------------------------------------------------------------------------
 # Document disk persistence
 # ---------------------------------------------------------------------------
-_DOCS_DIR = Path(__file__).parent / "documents"
+_DOCS_DIR = _DATA_ROOT / "documents"
 _DOCS_DIR.mkdir(exist_ok=True)
 
 
