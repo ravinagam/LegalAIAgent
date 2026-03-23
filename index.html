@@ -1142,6 +1142,7 @@ function onAuthSuccess(data) {
   hideAuthOverlay();
   showUserBadge(data.username);
   loadDocs();
+  loadAlerts();
 }
 
 function showUserBadge(username) {
@@ -1184,6 +1185,12 @@ async function doRegister() {
 }
 
 async function doLogout() {
+  if (_alertPollTimer) { clearTimeout(_alertPollTimer); _alertPollTimer = null; }
+  docDeadlines = []; alertDeadlines = []; allDeadlines = [];
+  const alertsPanel = document.getElementById('alertsPanel');
+  if (alertsPanel) alertsPanel.style.display = 'none';
+  const alertBell = document.getElementById('alertBell');
+  if (alertBell) alertBell.style.display = 'none';
   const token = getToken();
   if (token) {
     await fetch(`${API}/api/logout`, { method: 'POST', headers: authHeaders() }).catch(() => {});
@@ -1341,6 +1348,7 @@ function renderDocView() {
   renderRisk(a);
   renderChatWelcome(a);
   renderChatHistory(currentDoc.chat_history || []);
+  loadDeadlines(currentDocId);
 }
 
 /* ── Overview ───────────────────────────────────────────────────────────── */
@@ -2484,30 +2492,10 @@ function downloadCsvTemplate() {
   a.click(); URL.revokeObjectURL(url);
 }
 
-/* ── Wire into existing functions ───────────────────────────────────────── */
-// Patch onAuthSuccess to start alert polling and show bell
-const _origOnAuthSuccess = onAuthSuccess;
-function onAuthSuccess(data) {
-  _origOnAuthSuccess(data);
-  loadAlerts();
-}
-
-// Patch doLogout to clear deadline state
-const _origDoLogout = doLogout;
-async function doLogout() {
-  if (_alertPollTimer) { clearTimeout(_alertPollTimer); _alertPollTimer = null; }
-  docDeadlines = []; alertDeadlines = []; allDeadlines = [];
-  document.getElementById('alertsPanel').style.display = 'none';
-  document.getElementById('alertBell').style.display  = 'none';
-  await _origDoLogout();
-}
-
-// Patch renderDocView to load deadlines for current doc
-const _origRenderDocView = renderDocView;
-function renderDocView() {
-  _origRenderDocView();
-  loadDeadlines(currentDocId);
-}
+/* Wire-in note: loadAlerts() is called directly in onAuthSuccess and the
+   init IIFE above; loadDeadlines() is called at the end of renderDocView;
+   deadline cleanup is done in doLogout — all via direct edits to those
+   functions, so no patching needed here. */
 </script>
 </body>
 </html>
