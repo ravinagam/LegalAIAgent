@@ -2275,12 +2275,15 @@ function renderAlertsPanel() {
     return;
   }
   body.innerHTML = alertDeadlines.map(dl => {
-    const daysLeft = dl.days_left;
-    const daysHtml = dl.overdue
-      ? `<span style="color:var(--red);font-size:12px;font-weight:600">${Math.abs(daysLeft)} days overdue</span>`
-      : daysLeft === 0
-        ? `<span style="color:var(--red);font-size:12px;font-weight:600">Due TODAY</span>`
-        : `<span style="color:${daysLeft <= 3 ? 'var(--red)' : 'var(--amber)'};font-size:12px;font-weight:600">${daysLeft} days left</span>`;
+    const daysLeft = dl.days_left ?? dlDaysLeft(dl.date);
+    const isOverdue = daysLeft !== null && daysLeft < 0;
+    const daysHtml = daysLeft === null
+      ? `<span style="color:var(--text-muted);font-size:12px">No fixed date</span>`
+      : isOverdue
+        ? `<span style="color:var(--red);font-size:12px;font-weight:600">${Math.abs(daysLeft)} days overdue</span>`
+        : daysLeft === 0
+          ? `<span style="color:var(--red);font-size:12px;font-weight:600">Due TODAY</span>`
+          : `<span style="color:${daysLeft <= 3 ? 'var(--red)' : 'var(--amber)'};font-size:12px;font-weight:600">${daysLeft} days left</span>`;
     const caseDoc = allDocs.find(d => d.id === dl.doc_id);
     return `
     <div class="alert-item">
