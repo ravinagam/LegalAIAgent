@@ -635,6 +635,7 @@ exactly this structure (no extra keys):
   "effective_date": "string or null",
   "expiry_date": "string or null",
   "governing_law": "string or null",
+  "case_number": "court case/docket/matter number as a string, or null if not present",
   "summary": "3-5 sentence executive summary of the document",
   "risk_level": "Low | Medium | High",
   "risk_factors": ["list of specific risk concerns as strings"],
@@ -706,6 +707,7 @@ async def analyze_document(text: str, filename: str) -> dict:
             "effective_date": None,
             "expiry_date": None,
             "governing_law": None,
+            "case_number": None,
             "summary": "Analysis could not be parsed. Please review the document manually.",
             "risk_level": "Medium",
             "risk_factors": [],
@@ -989,6 +991,7 @@ async def list_documents(request: Request):
             "document_type": d["analysis"].get("document_type", "Unknown"),
             "risk_level": d["analysis"].get("risk_level", "Unknown"),
             "parties": d["analysis"].get("parties", []),
+            "case_number": d["analysis"].get("case_number"),
             "uploaded_at": d.get("uploaded_at"),
         }
         for d in documents.values()

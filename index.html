@@ -688,6 +688,42 @@
 
   /* ── Add Deadline modal ────────────────────────────────────────────────── */
   .add-dl-modal { max-width: 480px; }
+
+  /* ── Dashboard table ───────────────────────────────────────────────────── */
+  .dash-table-wrap { overflow-x: auto; }
+  .dash-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .dash-table th {
+    text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted);
+    border-bottom: 2px solid var(--border); white-space: nowrap;
+    position: sticky; top: 0; background: var(--card); z-index: 1;
+  }
+  .dash-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .dash-table tbody tr:hover td { background: #f8fafc; }
+  .dash-table tbody tr.row-overdue td { background: #fff5f5; }
+  .dash-table tbody tr.row-soon    td { background: #fffbeb; }
+  .dash-table tbody tr.row-dismissed td { opacity: .45; }
+  .dt-case   { font-size: 12px; font-weight: 700; color: var(--blue); white-space: nowrap; }
+  .dt-party  { font-size: 12px; color: var(--text); max-width: 130px; }
+  .dt-party-label { font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .3px; color: var(--text-muted); margin-bottom: 1px; }
+  .dt-doc    { font-size: 11px; color: var(--text-muted); max-width: 120px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  .dt-doc:hover { color: var(--blue); text-decoration: underline; }
+  .dt-title  { font-size: 13px; font-weight: 500; color: var(--text); max-width: 160px; }
+  .dt-type-chip {
+    display: inline-block; font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .3px; padding: 1px 5px; border-radius: 4px;
+    background: #eff6ff; color: #1d4ed8; margin-top: 2px;
+  }
+  .dt-days   { white-space: nowrap; font-size: 12px; font-weight: 600; }
+  .dt-days-overdue { color: var(--red); }
+  .dt-days-soon    { color: var(--amber); }
+  .dt-days-ok      { color: var(--green); }
+  .dt-actions { display: flex; gap: 4px; white-space: nowrap; }
+  .dash-empty { padding: 32px; text-align: center; color: var(--text-muted); font-size: 13px; }
+  .dash-result-count { font-size: 12px; color: var(--text-muted); padding: 8px 24px 0;
+    flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -1035,6 +1071,7 @@
       </label>
       <button class="dash-import-lbl" onclick="downloadCsvTemplate()">📄 Template</button>
     </div>
+    <div class="dash-result-count" id="dashResultCount"></div>
     <div class="dash-body" id="dashBody"></div>
     <div class="dash-quick-add">
       <div class="dash-qa-title">Quick Add Deadline</div>
@@ -1724,6 +1761,7 @@ async function saveEdit(reanalyze) {
       entry.document_type = updated.analysis.document_type;
       entry.risk_level    = updated.analysis.risk_level;
       entry.parties       = updated.analysis.parties;
+      entry.case_number   = updated.analysis.case_number || null;
       entry.size          = updated.size;
     }
 
@@ -1950,6 +1988,7 @@ async function uploadFile() {
       document_type: doc.analysis.document_type,
       risk_level:    doc.analysis.risk_level,
       parties:       doc.analysis.parties,
+      case_number:   doc.analysis.case_number || null,
       size:          doc.size,
       uploaded_at:   doc.uploaded_at,
     });
@@ -2340,69 +2379,118 @@ function renderDashboard() {
   const statF  = document.getElementById('dashStatusFilter')?.value ?? 'active';
 
   const filtered = allDeadlines.filter(dl => {
-    const doc = allDocs.find(d => d.id === dl.doc_id);
-    const matchQ = !q
-      || (dl.title || '').toLowerCase().includes(q)
-      || (doc?.filename || '').toLowerCase().includes(q);
-    const matchT = !typeF   || dl.type === typeF;
-    const matchS = !statF   || dl.status === statF;
+    const doc     = allDocs.find(d => d.id === dl.doc_id);
+    const parties = (doc?.parties || []).join(' ').toLowerCase();
+    const caseNum = (doc?.case_number || '').toLowerCase();
+    const dateStr = dl.date ? dlFormatDate(dl.date).toLowerCase() : '';
+    const matchQ  = !q
+      || (dl.title        || '').toLowerCase().includes(q)
+      || (doc?.filename   || '').toLowerCase().includes(q)
+      || parties.includes(q)
+      || caseNum.includes(q)
+      || dateStr.includes(q)
+      || (dl.description  || '').toLowerCase().includes(q)
+      || (dl.type         || '').replace(/_/g,' ').includes(q);
+    const matchT = !typeF || dl.type   === typeF;
+    const matchS = !statF || dl.status === statF;
     return matchQ && matchT && matchS;
   });
 
   const enriched = filtered.map(dl => ({ ...dl, daysLeft: dlDaysLeft(dl.date) }));
-  enriched.sort((a, b) => {
-    // overdue first, then by date asc
-    const da = a.date || '9999-99-99', db = b.date || '9999-99-99';
-    return da < db ? -1 : 1;
-  });
+  enriched.sort((a, b) => (a.date || '9999-99-99') < (b.date || '9999-99-99') ? -1 : 1);
 
-  // Stats over ALL active deadlines
+  // Stats bar over ALL active deadlines
   const allActive = allDeadlines.filter(d => d.status === 'active')
     .map(d => ({ ...d, daysLeft: dlDaysLeft(d.date) }));
-  const statsEl = document.getElementById('dashStats');
-  if (statsEl) renderDlSummary(allActive, statsEl);
+  renderDlSummary(allActive, document.getElementById('dashStats'));
+
+  // Result count
+  const countEl = document.getElementById('dashResultCount');
+  if (countEl) countEl.textContent = enriched.length
+    ? `${enriched.length} deadline${enriched.length !== 1 ? 's' : ''} found`
+    : '';
 
   const body = document.getElementById('dashBody');
   if (!body) return;
 
   if (!enriched.length) {
-    body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:24px 0">No deadlines match your filters.</p>';
+    body.innerHTML = `<div class="dash-empty">No deadlines match your search. Try a different keyword or clear the filters.</div>`;
     return;
   }
 
-  body.innerHTML = enriched.map(dl => {
-    const doc      = allDocs.find(d => d.id === dl.doc_id);
-    const daysLeft = dl.daysLeft;
-    const urgCls   = dlUrgencyClass(daysLeft);
-    const daysHtml = dlDaysText(daysLeft, dl.date, dl.date_approximate);
-    const dismissed = dl.status === 'dismissed';
-    const dateDisplay = dl.date
-      ? `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" title="Click to edit date">${dlFormatDate(dl.date)}</span>`
-      : `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" title="Click to set date" style="color:var(--text-muted)">No date — click to set</span>`;
-    return `
-    <div class="dash-item" id="dash-dl-${dl.id}" style="${dismissed ? 'opacity:.45' : ''}">
-      <div class="dl-urgency ${urgCls}"></div>
-      <div class="dash-item-body">
-        <div class="dash-item-case">📁 ${esc(doc?.filename || dl.doc_id)}</div>
-        <div class="dash-item-title">${esc(dl.title)}</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px">
-          <span class="dl-type-chip">${esc(dlTypeLabel(dl.type))}</span>
-          <span id="dash-date-${dl.id}">${dateDisplay}</span>
-          ${daysHtml}
-        </div>
-        ${dl.description ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(dl.description)}</div>` : ''}
-      </div>
-      <div class="dash-item-actions">
-        ${!dismissed ? `
-          <button class="dl-btn" onclick="dlSnooze('${dl.id}',7,'dash')" title="Snooze 7 days">💤</button>
-          <button class="dl-btn" onclick="dlDismiss('${dl.id}','dash')">✓ Done</button>
-        ` : `
-          <button class="dl-btn" onclick="dlReinstate('${dl.id}','dash')">Restore</button>
-        `}
-        <button class="dl-btn dl-btn-danger" onclick="dlDelete('${dl.id}','dash')">✕</button>
-      </div>
-    </div>`;
-  }).join('');
+  body.innerHTML = `
+  <div class="dash-table-wrap">
+    <table class="dash-table">
+      <thead>
+        <tr>
+          <th>Case #</th>
+          <th>Petitioner</th>
+          <th>Respondent</th>
+          <th>Document</th>
+          <th>Deadline</th>
+          <th>Date</th>
+          <th>Days Left</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${enriched.map(dl => {
+          const doc       = allDocs.find(d => d.id === dl.doc_id);
+          const parties   = doc?.parties || [];
+          const petitioner = parties[0] || '—';
+          const respondent = parties[1] || (parties.length > 1 ? parties[1] : '—');
+          const caseNum   = doc?.case_number || '—';
+          const daysLeft  = dl.daysLeft;
+          const dismissed = dl.status === 'dismissed';
+          const rowCls    = dismissed ? 'row-dismissed'
+            : daysLeft !== null && daysLeft < 0 ? 'row-overdue'
+            : daysLeft !== null && daysLeft <= 7 ? 'row-soon' : '';
+          const daysCls   = daysLeft === null ? '' : daysLeft < 0 ? 'dt-days-overdue' : daysLeft <= 7 ? 'dt-days-soon' : 'dt-days-ok';
+          const daysLabel = daysLeft === null
+            ? (dl.date_approximate ? `<span style="color:var(--text-muted)">${esc(dl.date_approximate)}</span>` : '—')
+            : daysLeft < 0  ? `${Math.abs(daysLeft)}d overdue`
+            : daysLeft === 0 ? 'TODAY'
+            : `${daysLeft}d`;
+          const dateDisplay = dl.date
+            ? `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" title="Click to edit">${dlFormatDate(dl.date)}</span>`
+            : `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" style="color:var(--text-muted)" title="Click to set">Set date…</span>`;
+          return `
+          <tr class="${rowCls}" id="dash-dl-${dl.id}">
+            <td><span class="dt-case">${esc(caseNum)}</span></td>
+            <td>
+              <div class="dt-party-label">Petitioner</div>
+              <div class="dt-party">${esc(petitioner)}</div>
+            </td>
+            <td>
+              <div class="dt-party-label">Respondent</div>
+              <div class="dt-party">${esc(respondent)}</div>
+            </td>
+            <td>
+              <div class="dt-doc" onclick="openDocDeadlines('${dl.doc_id}')" title="${esc(doc?.filename || dl.doc_id)}">
+                📁 ${esc(doc?.filename || dl.doc_id)}
+              </div>
+            </td>
+            <td>
+              <div class="dt-title">${esc(dl.title)}</div>
+              <span class="dt-type-chip">${esc(dlTypeLabel(dl.type))}</span>
+              ${dl.description ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(dl.description)}</div>` : ''}
+            </td>
+            <td><span id="dash-date-${dl.id}">${dateDisplay}</span></td>
+            <td><span class="dt-days ${daysCls}">${daysLabel}</span></td>
+            <td>
+              <div class="dt-actions">
+                ${!dismissed
+                  ? `<button class="dl-btn" onclick="dlSnooze('${dl.id}',7,'dash')" title="Snooze 7 days">💤</button>
+                     <button class="dl-btn" onclick="dlDismiss('${dl.id}','dash')">✓</button>`
+                  : `<button class="dl-btn" onclick="dlReinstate('${dl.id}','dash')">Restore</button>`}
+                <button class="dl-btn dl-btn-danger" onclick="dlDelete('${dl.id}','dash')">✕</button>
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
 }
 
 /* ── Inline date editing in dashboard ───────────────────────────────────── */
