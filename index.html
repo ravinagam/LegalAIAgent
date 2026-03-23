@@ -624,6 +624,96 @@
   .alert-item-title { font-size: 12px; font-weight: 600; color: var(--text); }
   .alert-item-case  { font-size: 11px; color: var(--text-muted); margin: 1px 0; }
 
+  /* ── Sidebar Add Deadline nav link ────────────────────────────────────── */
+  .btn-add-deadline {
+    width: 100%; margin-top: 6px; padding: 9px 14px;
+    background: rgba(16,185,129,.15); color: #6ee7b7;
+    border: 1px solid rgba(16,185,129,.25); border-radius: 8px;
+    cursor: pointer; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all .15s;
+  }
+  .btn-add-deadline:hover  { background: rgba(16,185,129,.28); color: #fff; }
+  .btn-add-deadline.active { background: rgba(16,185,129,.35); color: #fff; border-color: #10b981; }
+
+  /* ── Deadline Management view (right panel) ────────────────────────────── */
+  .dl-view { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 20px; }
+  .dl-view-header { display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 4px; }
+  .dl-view-title { font-size: 18px; font-weight: 700; color: var(--text); }
+  .dl-view-sub   { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  /* Search card */
+  .dl-search-card { background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; }
+  .dl-search-row  { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .dl-search-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
+  .dl-search-label { font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .4px; }
+  .dl-search-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px;
+    font-size: 13px; outline: none; background: var(--card); }
+  .dl-search-input:focus { border-color: var(--blue); }
+  /* Results card */
+  .dl-results-card { background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden; }
+  .dl-results-header { display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .dl-results-title  { font-size: 14px; font-weight: 600; color: var(--text); }
+  .dl-results-count  { font-size: 12px; color: var(--text-muted); }
+  /* Deadline management table */
+  .dlm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .dlm-table th {
+    text-align: left; padding: 9px 14px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted);
+    border-bottom: 2px solid var(--border); background: #f8fafc; white-space: nowrap;
+  }
+  .dlm-table td   { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .dlm-table tr:hover td { background: #f8fafc; }
+  .dlm-table tr.dlm-overdue td { background: #fff5f5; }
+  .dlm-table tr.dlm-soon    td { background: #fffbeb; }
+  .dlm-case   { font-size: 12px; font-weight: 700; color: var(--blue); }
+  .dlm-party  { font-size: 13px; color: var(--text); }
+  .dlm-plabel { font-size: 10px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .3px; }
+  .dlm-title  { font-size: 13px; font-weight: 500; color: var(--text); }
+  .dlm-type-chip { display: inline-block; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; padding: 1px 6px; border-radius: 4px;
+    background: #eff6ff; color: #1d4ed8; margin-top: 2px; }
+  .dlm-date-cell  { min-width: 180px; }
+  .dlm-cur-date   { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  .dlm-cur-date strong { color: var(--text); }
+  .dlm-new-date-row { display: flex; gap: 6px; align-items: center; }
+  .dlm-date-input { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 12px; outline: none; }
+  .dlm-date-input:focus { border-color: var(--blue); }
+  .dlm-update-btn { padding: 5px 10px; background: var(--blue); color: #fff;
+    border: none; border-radius: 6px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+  .dlm-update-btn:hover { background: var(--blue-dark); }
+  /* History */
+  .dlm-hist-btn { padding: 3px 8px; border: 1.5px solid var(--border); border-radius: 5px;
+    background: none; font-size: 11px; cursor: pointer; color: var(--text-muted);
+    margin-top: 6px; transition: all .15s; }
+  .dlm-hist-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .dlm-history-row td { background: #f0f7ff !important; padding: 10px 14px 14px 40px; }
+  .dlm-history-timeline { display: flex; flex-direction: column; gap: 6px; }
+  .dlm-hist-entry { display: flex; align-items: flex-start; gap: 10px; font-size: 12px; }
+  .dlm-hist-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue);
+    margin-top: 3px; flex-shrink: 0; }
+  .dlm-hist-dot.initial { background: var(--green); }
+  .dlm-hist-date  { font-weight: 600; color: var(--text); min-width: 90px; }
+  .dlm-hist-meta  { color: var(--text-muted); }
+  /* Add deadline form card */
+  .dl-add-card { background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; }
+  .dl-add-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 12px; }
+  .dl-add-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dl-add-field { display: flex; flex-direction: column; gap: 4px; }
+  .dl-add-label { font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .4px; }
+  .dl-add-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px;
+    font-size: 13px; outline: none; }
+  .dl-add-input:focus { border-color: var(--blue); }
+  .dl-add-full  { grid-column: 1 / -1; }
+
   /* ── Sidebar Add Deadline form ────────────────────────────────────────── */
   .sidebar-add-dl {
     margin: 8px 8px 4px; border-radius: 8px;
@@ -849,28 +939,7 @@
       </button>
       <button class="btn-library" onclick="openLibrary()">📂 My Documents</button>
       <button class="btn-deadlines" onclick="openDashboard()">📅 Deadline Dashboard</button>
-      <!-- Add Deadline (sidebar) -->
-      <div class="sidebar-add-dl" id="sidebarAddDl">
-        <div class="sidebar-add-dl-header" onclick="toggleSidebarAddDl()">
-          <span>➕ Add Deadline</span>
-          <span id="sidebarAddDlArrow">▸</span>
-        </div>
-        <div class="sidebar-add-dl-body hidden" id="sidebarAddDlBody">
-          <select class="sdl-input" id="sdlDocId"></select>
-          <input  class="sdl-input" id="sdlTitle" type="text" placeholder="Deadline title…"/>
-          <input  class="sdl-input" id="sdlDate"  type="date"/>
-          <select class="sdl-input" id="sdlType">
-            <option value="filing_window">Filing Window</option>
-            <option value="court_date">Court Date</option>
-            <option value="response_deadline">Response Deadline</option>
-            <option value="contract_expiry">Contract Expiry</option>
-            <option value="payment_due">Payment Due</option>
-            <option value="regulatory_deadline">Regulatory Deadline</option>
-            <option value="other">Other</option>
-          </select>
-          <button class="sdl-add-btn" onclick="sidebarAddDeadline()">Add Deadline</button>
-        </div>
-      </div>
+      <button class="btn-add-deadline" id="btnAddDeadline" onclick="openDeadlineView()">➕ Add Deadline</button>
     </div>
 
     <div class="sidebar-search">
@@ -913,6 +982,104 @@
         <div class="empty-title">No Document Selected</div>
         <div class="empty-sub">Upload a legal document — contract, NDA, agreement, or lease — to get an instant AI analysis, clause breakdown, and risk assessment.</div>
         <button class="empty-btn" onclick="openUpload()">Upload Document</button>
+      </div>
+
+      <!-- Deadline Management view -->
+      <div id="deadlineView" style="display:none; flex:1; overflow:hidden; flex-direction:column;">
+        <div class="dl-view">
+
+          <!-- Header -->
+          <div>
+            <div class="dl-view-title">➕ Add &amp; Manage Deadlines</div>
+            <div class="dl-view-sub">Search cases, update hearing dates and track date history</div>
+          </div>
+
+          <!-- Search card -->
+          <div class="dl-search-card">
+            <div class="dl-search-row">
+              <div class="dl-search-group" style="flex:2;min-width:200px">
+                <label class="dl-search-label">Search</label>
+                <input class="dl-search-input" id="dlvSearch" type="text"
+                  placeholder="Petitioner, respondent, case number, deadline…"
+                  oninput="renderDlViewResults()"/>
+              </div>
+              <div class="dl-search-group">
+                <label class="dl-search-label">Date from</label>
+                <input class="dl-search-input" id="dlvDateFrom" type="date" onchange="renderDlViewResults()"/>
+              </div>
+              <div class="dl-search-group">
+                <label class="dl-search-label">Date to</label>
+                <input class="dl-search-input" id="dlvDateTo" type="date" onchange="renderDlViewResults()"/>
+              </div>
+              <div class="dl-search-group" style="flex:0">
+                <label class="dl-search-label">&nbsp;</label>
+                <button class="btn" onclick="clearDlViewSearch()" style="font-size:12px;padding:8px 14px">Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div class="dl-results-card">
+            <div class="dl-results-header">
+              <span class="dl-results-title">Cases &amp; Deadlines</span>
+              <span class="dl-results-count" id="dlvCount"></span>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="dlm-table">
+                <thead>
+                  <tr>
+                    <th>Case #</th>
+                    <th>Petitioner</th>
+                    <th>Respondent</th>
+                    <th>Deadline</th>
+                    <th class="dlm-date-cell">Hearing / Due Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dlvTableBody">
+                  <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Search above to find deadlines</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Add new deadline form -->
+          <div class="dl-add-card">
+            <div class="dl-add-title">➕ Add New Deadline</div>
+            <div class="dl-add-grid">
+              <div class="dl-add-field dl-add-full">
+                <label class="dl-add-label">Case / Document *</label>
+                <select class="dl-add-input" id="dlvAddDocId"></select>
+              </div>
+              <div class="dl-add-field dl-add-full">
+                <label class="dl-add-label">Deadline Title *</label>
+                <input class="dl-add-input" id="dlvAddTitle" type="text" placeholder="e.g. Hearing date, Filing deadline"/>
+              </div>
+              <div class="dl-add-field">
+                <label class="dl-add-label">Date</label>
+                <input class="dl-add-input" id="dlvAddDate" type="date"/>
+              </div>
+              <div class="dl-add-field">
+                <label class="dl-add-label">Type</label>
+                <select class="dl-add-input" id="dlvAddType">
+                  <option value="court_date">Court Date / Hearing</option>
+                  <option value="filing_window">Filing Window</option>
+                  <option value="response_deadline">Response Deadline</option>
+                  <option value="contract_expiry">Contract Expiry</option>
+                  <option value="payment_due">Payment Due</option>
+                  <option value="regulatory_deadline">Regulatory Deadline</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="dl-add-field dl-add-full">
+                <label class="dl-add-label">Notes</label>
+                <input class="dl-add-input" id="dlvAddDesc" type="text" placeholder="Optional notes"/>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:12px" onclick="dlvAddDeadline()">Add Deadline</button>
+          </div>
+
+        </div>
       </div>
 
       <!-- Document view (hidden until document selected) -->
@@ -1388,7 +1555,9 @@ async function selectDoc(id) {
 
 function renderDocView() {
   const a = currentDoc.analysis;
-  document.getElementById('emptyState').style.display  = 'none';
+  document.getElementById('emptyState').style.display   = 'none';
+  document.getElementById('deadlineView').style.display = 'none';
+  document.getElementById('btnAddDeadline')?.classList.remove('active');
   const dv = document.getElementById('docView');
   dv.style.display = 'flex';
 
@@ -2248,6 +2417,7 @@ async function dlPatch(id, patch, context) {
     if (context === 'tab')   { renderDeadlineTab(); loadAlerts(); }
     if (context === 'dash')  { renderDashboard(); loadAlerts(); }
     if (context === 'alert') { renderAlertsPanel(); updateAlertBell(); }
+    if (context === 'view')  { renderDlViewResults(); }
   } catch (e) { showToast('Failed: ' + e.message, 'error'); }
 }
 
@@ -2268,6 +2438,7 @@ async function dlDelete(id, ctx) {
     if (ctx === 'tab')  { renderDeadlineTab(); loadAlerts(); }
     if (ctx === 'dash') { renderDashboard(); loadAlerts(); }
     if (ctx === 'alert'){ renderAlertsPanel(); updateAlertBell(); }
+    if (ctx === 'view') { renderDlViewResults(); }
   } catch (e) { showToast('Delete failed', 'error'); }
 }
 
@@ -2404,53 +2575,225 @@ function closeDashboardOuter(e) {
   if (e.target === document.getElementById('dashOverlay')) closeDashboard();
 }
 
-function populateSidebarDocSelect() {
-  const sel = document.getElementById('sdlDocId');
+function populateSidebarDocSelect() { /* no-op — sidebar now uses full view */ }
+function populateQaDocSelect()      { /* no-op — dashboard no longer has quick-add */ }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DEADLINE MANAGEMENT VIEW (right panel, opened from sidebar nav link)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function openDeadlineView() {
+  document.getElementById('emptyState').style.display  = 'none';
+  document.getElementById('docView').style.display     = 'none';
+  document.getElementById('deadlineView').style.display = 'flex';
+  document.getElementById('btnAddDeadline')?.classList.add('active');
+  // populate add-form case selector
+  _populateDlvDocSelect();
+  // render all deadlines by default
+  renderDlViewResults();
+}
+
+function _populateDlvDocSelect() {
+  const sel = document.getElementById('dlvAddDocId');
   if (!sel) return;
-  const current = sel.value;
-  sel.innerHTML = '<option value="">— Select case —</option>' +
-    allDocs.map(d => `<option value="${d.id}" ${d.id === current ? 'selected' : ''}>${esc(d.filename)}</option>`).join('');
-  // pre-select currently open doc
-  if (!current && currentDocId) sel.value = currentDocId;
+  sel.innerHTML = '<option value="">— Select case / document —</option>' +
+    allDocs.map(d => `<option value="${d.id}">${esc(d.filename)}</option>`).join('');
 }
 
-function toggleSidebarAddDl() {
-  const body  = document.getElementById('sidebarAddDlBody');
-  const arrow = document.getElementById('sidebarAddDlArrow');
-  const open  = !body.classList.contains('hidden');
-  body.classList.toggle('hidden', open);
-  arrow.textContent = open ? '▸' : '▾';
-  if (!open) populateSidebarDocSelect();
+/* ── Search / filter ─────────────────────────────────────────────────────── */
+function clearDlViewSearch() {
+  document.getElementById('dlvSearch').value   = '';
+  document.getElementById('dlvDateFrom').value = '';
+  document.getElementById('dlvDateTo').value   = '';
+  renderDlViewResults();
 }
 
-async function sidebarAddDeadline() {
-  const docId = document.getElementById('sdlDocId').value;
-  const title = document.getElementById('sdlTitle').value.trim();
-  const d     = document.getElementById('sdlDate').value;
-  const type  = document.getElementById('sdlType').value;
+function renderDlViewResults() {
+  const q       = (document.getElementById('dlvSearch')?.value || '').toLowerCase().trim();
+  const dateFrom = document.getElementById('dlvDateFrom')?.value || '';
+  const dateTo   = document.getElementById('dlvDateTo')?.value   || '';
+
+  const filtered = allDeadlines.filter(dl => {
+    const doc     = allDocs.find(d => d.id === dl.doc_id);
+    const parties = (doc?.parties || []).join(' ').toLowerCase();
+    const caseNum = (doc?.case_number || '').toLowerCase();
+    const dateStr = (dl.date || '');
+    const matchQ  = !q
+      || (dl.title || '').toLowerCase().includes(q)
+      || (doc?.filename || '').toLowerCase().includes(q)
+      || parties.includes(q)
+      || caseNum.includes(q)
+      || (dl.description || '').toLowerCase().includes(q)
+      || dlFormatDate(dl.date).toLowerCase().includes(q)
+      || (dl.type || '').replace(/_/g,' ').includes(q);
+    const matchFrom = !dateFrom || (dateStr && dateStr >= dateFrom);
+    const matchTo   = !dateTo   || (dateStr && dateStr <= dateTo);
+    return matchQ && matchFrom && matchTo;
+  });
+
+  const enriched = filtered.map(dl => ({ ...dl, daysLeft: dlDaysLeft(dl.date) }));
+  enriched.sort((a, b) => (a.date || '9999') < (b.date || '9999') ? -1 : 1);
+
+  const countEl = document.getElementById('dlvCount');
+  if (countEl) countEl.textContent =
+    `${enriched.length} deadline${enriched.length !== 1 ? 's' : ''}${q ? ' matching' : ' total'}`;
+
+  const tbody = document.getElementById('dlvTableBody');
+  if (!tbody) return;
+
+  if (!enriched.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">
+      ${q ? 'No deadlines match your search.' : 'No deadlines yet — add one below.'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = enriched.map(dl => {
+    const doc       = allDocs.find(d => d.id === dl.doc_id);
+    const parties   = doc?.parties || [];
+    const petitioner = parties[0] || '—';
+    const respondent = parties[1] || '—';
+    const caseNum   = doc?.case_number || '—';
+    const daysLeft  = dl.daysLeft;
+    const rowCls    = daysLeft !== null && daysLeft < 0 ? 'dlm-overdue'
+      : daysLeft !== null && daysLeft <= 7 ? 'dlm-soon' : '';
+    const daysBadge = daysLeft === null ? ''
+      : daysLeft < 0  ? `<span style="color:var(--red);font-size:11px;font-weight:600">${Math.abs(daysLeft)}d overdue</span>`
+      : daysLeft === 0 ? `<span style="color:var(--red);font-size:11px;font-weight:600">TODAY</span>`
+      : daysLeft <= 7  ? `<span style="color:var(--amber);font-size:11px;font-weight:600">${daysLeft}d left</span>`
+      :                  `<span style="color:var(--green);font-size:11px;font-weight:600">${daysLeft}d</span>`;
+    const histCount = (dl.date_history || []).length;
+    return `
+    <tr class="${rowCls}" id="dlv-row-${dl.id}">
+      <td><span class="dlm-case">${esc(caseNum)}</span></td>
+      <td>
+        <div class="dlm-plabel">Petitioner</div>
+        <div class="dlm-party">${esc(petitioner)}</div>
+        ${parties.length > 2 ? `<div style="font-size:11px;color:var(--text-muted)">+${parties.length-2} more</div>` : ''}
+      </td>
+      <td>
+        <div class="dlm-plabel">Respondent</div>
+        <div class="dlm-party">${esc(respondent)}</div>
+      </td>
+      <td>
+        <div class="dlm-title">${esc(dl.title)}</div>
+        <span class="dlm-type-chip">${esc(dlTypeLabel(dl.type))}</span>
+        ${dl.description ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(dl.description)}</div>` : ''}
+      </td>
+      <td class="dlm-date-cell">
+        <div class="dlm-cur-date">Current: <strong>${dl.date ? dlFormatDate(dl.date) : 'Not set'}</strong> ${daysBadge}</div>
+        <div class="dlm-new-date-row">
+          <input class="dlm-date-input" id="dlv-newdate-${dl.id}" type="date" value="${dl.date || ''}" placeholder="New date"/>
+          <button class="dlm-update-btn" onclick="dlvUpdateDate('${dl.id}')">Update</button>
+        </div>
+        <button class="dlm-hist-btn" onclick="toggleDlvHistory('${dl.id}')">
+          📋 History (${histCount})
+        </button>
+      </td>
+      <td>
+        <span class="badge badge-${dl.status === 'active' ? 'low' : 'unknown'}" style="font-size:11px">
+          ${dl.status}
+        </span>
+        <div style="display:flex;gap:4px;margin-top:6px">
+          ${dl.status === 'active'
+            ? `<button class="dl-btn" onclick="dlDismiss('${dl.id}','view')" title="Mark done">✓</button>`
+            : `<button class="dl-btn" onclick="dlReinstate('${dl.id}','view')">Restore</button>`}
+          <button class="dl-btn dl-btn-danger" onclick="dlDelete('${dl.id}','view')">✕</button>
+        </div>
+      </td>
+    </tr>
+    <tr class="dlm-history-row" id="dlv-hist-${dl.id}" style="display:none">
+      <td colspan="6">
+        ${_renderDateHistory(dl)}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Date history rendering ──────────────────────────────────────────────── */
+function _renderDateHistory(dl) {
+  const hist = dl.date_history || [];
+  if (!hist.length) return '<em style="color:var(--text-muted);font-size:12px">No date history recorded.</em>';
+  const rows = [...hist].reverse().map((h, i) => {
+    const isLatest  = i === 0;
+    const dotClass  = h.note?.includes('Initial') ? 'initial' : '';
+    const changedAt = h.changed_at ? new Date(h.changed_at).toLocaleString(undefined,
+      { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+    return `
+    <div class="dlm-hist-entry">
+      <div class="dlm-hist-dot ${dotClass}"></div>
+      <div>
+        <span class="dlm-hist-date">${h.date ? dlFormatDate(h.date) : 'Not set'}</span>
+        ${isLatest ? '<span style="font-size:10px;background:#dbeafe;color:#1d4ed8;padding:1px 5px;border-radius:4px;margin-left:6px">current</span>' : ''}
+        <div class="dlm-hist-meta">${esc(h.note || '')} ${changedAt ? '· ' + changedAt : ''}</div>
+      </div>
+    </div>`;
+  });
+  return `
+  <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">
+    Date History
+  </div>
+  <div class="dlm-history-timeline">${rows.join('')}</div>`;
+}
+
+function toggleDlvHistory(id) {
+  const row = document.getElementById(`dlv-hist-${id}`);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? '' : 'none';
+}
+
+/* ── Update date with history ────────────────────────────────────────────── */
+async function dlvUpdateDate(id) {
+  const inp    = document.getElementById(`dlv-newdate-${id}`);
+  const newDate = inp?.value;
+  if (!newDate) { showToast('Select a new date first', 'error'); return; }
+  const dl = allDeadlines.find(d => d.id === id);
+  if (dl && dl.date === newDate) { showToast('Date is unchanged', ''); return; }
+  const note = `Updated to ${dlFormatDate(newDate)}`;
+  try {
+    const r = await fetch(`${API}/api/deadlines/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ date: newDate, note }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+    const updated = await r.json();
+    // sync to all lists
+    const sync = arr => { const i = arr.findIndex(d => d.id === id); if (i !== -1) arr[i] = updated; };
+    sync(allDeadlines); sync(docDeadlines); sync(alertDeadlines);
+    showToast(`✓ Date updated to ${dlFormatDate(newDate)}`, 'success');
+    renderDlViewResults();
+    loadAlerts();
+  } catch (e) { showToast('Update failed: ' + e.message, 'error'); }
+}
+
+/* ── Add deadline from view ──────────────────────────────────────────────── */
+async function dlvAddDeadline() {
+  const docId = document.getElementById('dlvAddDocId').value;
+  const title = document.getElementById('dlvAddTitle').value.trim();
+  const d     = document.getElementById('dlvAddDate').value;
+  const type  = document.getElementById('dlvAddType').value;
+  const desc  = document.getElementById('dlvAddDesc').value.trim();
   if (!docId) { showToast('Select a case first', 'error'); return; }
   if (!title) { showToast('Title is required', 'error');  return; }
   try {
     const r = await fetch(`${API}/api/deadlines`, {
       method: 'POST',
       headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ doc_id: docId, title, date: d || null, type }),
+      body: JSON.stringify({ doc_id: docId, title, date: d || null, type, description: desc }),
     });
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
     const dl = await r.json();
     allDeadlines.push(dl);
     if (docId === currentDocId) { docDeadlines.push(dl); renderDeadlineTab(); }
-    document.getElementById('sdlTitle').value = '';
-    document.getElementById('sdlDate').value  = '';
+    document.getElementById('dlvAddTitle').value = '';
+    document.getElementById('dlvAddDate').value  = '';
+    document.getElementById('dlvAddDesc').value  = '';
     showToast('✓ Deadline added', 'success');
+    renderDlViewResults();
     loadAlerts();
   } catch (e) { showToast('Failed: ' + e.message, 'error'); }
 }
 
-function populateQaDocSelect() {
-  // kept for dashboard compat — dashboard no longer has quick-add, but
-  // keeping the function avoids errors if called elsewhere
-}
 
 function renderDashboard() {
   const q      = (document.getElementById('dashSearch')?.value || '').toLowerCase();

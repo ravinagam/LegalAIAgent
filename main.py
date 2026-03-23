@@ -283,12 +283,13 @@ def _create_deadlines_from_analysis(doc_id: str, owner: str, analysis: dict) -> 
         if not dl_raw.get("date") and not dl_raw.get("date_approximate"):
             continue
         dl_id = str(uuid.uuid4())
+        initial_date = dl_raw.get("date")
         deadlines_db[dl_id] = {
             "id": dl_id,
             "doc_id": doc_id,
             "owner": owner,
             "title": dl_raw.get("title") or "Unnamed deadline",
-            "date": dl_raw.get("date"),
+            "date": initial_date,
             "date_approximate": dl_raw.get("date_approximate"),
             "type": dl_raw.get("type") or "other",
             "description": dl_raw.get("description") or "",
@@ -296,6 +297,10 @@ def _create_deadlines_from_analysis(doc_id: str, owner: str, analysis: dict) -> 
             "status": "active",
             "snoozed_until": None,
             "created_at": datetime.now().isoformat(),
+            "date_history": [
+                {"date": initial_date, "changed_at": datetime.now().isoformat(),
+                 "note": "Initial date from document analysis"}
+            ] if initial_date else [],
         }
 
 
@@ -810,6 +815,7 @@ class UpdateDeadlineRequest(BaseModel):
     title: str | None = None
     date: str | None = None
     description: str | None = None
+    note: str | None = None   # reason / context for a date change
 
 
 # ---------------------------------------------------------------------------
@@ -1358,6 +1364,9 @@ async def create_deadline(request: Request, body: CreateDeadlineRequest):
         "source_clause": body.source_clause,
         "status": "active", "snoozed_until": None,
         "created_at": datetime.now().isoformat(),
+        "date_history": [
+            {"date": body.date, "changed_at": datetime.now().isoformat(), "note": "Initial date"}
+        ] if body.date else [],
     }
     deadlines_db[dl_id] = dl
     if _mongo_db is not None:
@@ -1377,11 +1386,19 @@ async def update_deadline(dl_id: str, body: UpdateDeadlineRequest, request: Requ
     owner = _token_to_user(request) or ""
     if owner and dl.get("owner") != owner:
         raise HTTPException(status_code=403, detail="Not authorized.")
-    if body.status      is not None: dl["status"]       = body.status
+    if body.status        is not None: dl["status"]       = body.status
     if body.snoozed_until is not None: dl["snoozed_until"] = body.snoozed_until
-    if body.title       is not None: dl["title"]        = body.title.strip()
-    if body.date        is not None: dl["date"]         = body.date
-    if body.description is not None: dl["description"]  = body.description
+    if body.title         is not None: dl["title"]        = body.title.strip()
+    if body.description   is not None: dl["description"]  = body.description
+    if body.date is not None and body.date != dl.get("date"):
+        # record old date in history before overwriting
+        dl.setdefault("date_history", []).append({
+            "date": dl.get("date"),
+            "changed_at": datetime.now().isoformat(),
+            "note": body.note or "Date updated",
+        })
+        dl["date"] = body.date
+        log.info("Deadline %s date changed to %s", dl_id, body.date)
     if _mongo_db is not None:
         await _mongo_save_deadline(dl)
     else:
