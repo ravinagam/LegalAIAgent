@@ -537,6 +537,157 @@
     transition: all .15s;
   }
   .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── Deadline Dashboard sidebar button ────────────────────────────────── */
+  .btn-deadlines {
+    width: 100%; margin-top: 6px; padding: 8px 14px;
+    background: rgba(255,255,255,.06); color: #94a3b8;
+    border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
+    cursor: pointer; font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: all .15s;
+  }
+  .btn-deadlines:hover { background: rgba(59,130,246,.2); color: #fff; border-color: var(--blue); }
+
+  /* ── Alert bell ────────────────────────────────────────────────────────── */
+  .alert-bell {
+    position: relative; background: none; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 16px; cursor: pointer; padding: 5px 10px;
+    color: var(--text-muted); transition: all .15s; line-height: 1;
+  }
+  .alert-bell:hover { border-color: var(--blue); color: var(--blue); }
+  .alert-count {
+    position: absolute; top: -6px; right: -6px; background: var(--red); color: #fff;
+    font-size: 10px; font-weight: 700; min-width: 16px; height: 16px; padding: 0 3px;
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Deadline tab badge ────────────────────────────────────────────────── */
+  .dl-tab-badge {
+    background: var(--red); color: #fff; font-size: 10px; font-weight: 700;
+    padding: 1px 5px; border-radius: 8px; margin-left: 4px;
+  }
+
+  /* ── Deadline items (per-doc tab) ─────────────────────────────────────── */
+  .deadline-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .deadline-item:last-child { border-bottom: none; }
+  .dl-urgency { width: 5px; min-width: 5px; border-radius: 3px; align-self: stretch; margin-top: 2px; }
+  .dl-urgency-overdue { background: var(--red); }
+  .dl-urgency-soon    { background: var(--amber); }
+  .dl-urgency-normal  { background: var(--green); }
+  .dl-body   { flex: 1; min-width: 0; }
+  .dl-title  { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .dl-meta   { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+  .dl-days   { font-size: 12px; font-weight: 600; }
+  .dl-days-overdue { color: var(--red); }
+  .dl-days-soon    { color: var(--amber); }
+  .dl-days-ok      { color: var(--green); }
+  .dl-actions { display: flex; gap: 5px; flex-shrink: 0; align-items: flex-start; flex-wrap: wrap; justify-content: flex-end; }
+  .dl-btn {
+    padding: 3px 8px; border-radius: 5px; font-size: 11px; cursor: pointer;
+    border: 1.5px solid var(--border); background: none; color: var(--text-muted);
+    transition: all .15s; white-space: nowrap;
+  }
+  .dl-btn:hover { border-color: var(--blue); color: var(--blue); }
+  .dl-btn-danger:hover { border-color: var(--red); color: var(--red); }
+  .dl-type-chip {
+    display: inline-block; font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .4px; padding: 1px 6px; border-radius: 4px;
+    background: #eff6ff; color: #1d4ed8; margin-right: 6px;
+  }
+  .dl-summary-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .dl-chip { padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; }
+  .dl-chip-overdue { background: #fee2e2; color: #991b1b; }
+  .dl-chip-soon    { background: #fef3c7; color: #92400e; }
+  .dl-chip-ok      { background: #d1fae5; color: #065f46; }
+
+  /* ── Alerts slide-in panel ────────────────────────────────────────────── */
+  .alerts-panel {
+    position: fixed; top: 56px; right: 0; width: 360px; max-height: calc(100vh - 56px);
+    background: var(--card); border-left: 1px solid var(--border);
+    box-shadow: -4px 0 20px rgba(0,0,0,.12); z-index: 900;
+    display: flex; flex-direction: column;
+  }
+  .alerts-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .alerts-panel-body { flex: 1; overflow-y: auto; padding: 8px 16px 16px; }
+  .alert-item {
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-item-title { font-size: 12px; font-weight: 600; color: var(--text); }
+  .alert-item-case  { font-size: 11px; color: var(--text-muted); margin: 1px 0; }
+
+  /* ── Deadline Dashboard overlay ───────────────────────────────────────── */
+  .dash-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5);
+    z-index: 950; display: flex; align-items: stretch;
+  }
+  .dash-overlay.hidden { display: none; }
+  .dash-modal {
+    background: var(--card); width: 100%; max-width: 900px; margin: auto;
+    border-radius: 12px; display: flex; flex-direction: column;
+    max-height: 90vh; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  }
+  .dash-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .dash-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .dash-sub   { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .dash-filters {
+    display: flex; gap: 8px; align-items: center; padding: 12px 24px;
+    border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+  }
+  .dash-search { flex: 1; min-width: 160px; padding: 7px 10px; border: 1px solid var(--border);
+    border-radius: 7px; font-size: 13px; outline: none; }
+  .dash-search:focus { border-color: var(--blue); }
+  .dash-filter-sel { padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px;
+    font-size: 12px; background: var(--card); cursor: pointer; }
+  .dash-import-lbl {
+    padding: 7px 12px; border: 1.5px solid var(--border); border-radius: 7px;
+    font-size: 12px; cursor: pointer; color: var(--text-muted); font-weight: 500;
+    transition: all .15s; white-space: nowrap;
+  }
+  .dash-import-lbl:hover { border-color: var(--blue); color: var(--blue); }
+  .dash-body { flex: 1; overflow-y: auto; padding: 0 24px; }
+  .dash-stats { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 24px 0; flex-shrink: 0; }
+  .dash-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .dash-item:last-child { border-bottom: none; }
+  .dash-item-body { flex: 1; min-width: 0; }
+  .dash-item-case { font-size: 11px; color: var(--text-muted); margin-bottom: 1px; }
+  .dash-item-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .dash-item-date {
+    display: inline-block; font-size: 12px; font-weight: 500; cursor: pointer;
+    border-bottom: 1px dashed var(--border); padding-bottom: 1px;
+  }
+  .dash-item-date:hover { border-color: var(--blue); color: var(--blue); }
+  .dash-date-input { font-size: 12px; border: 1px solid var(--blue); border-radius: 4px; padding: 1px 4px; }
+  .dash-item-actions { display: flex; gap: 5px; flex-shrink: 0; flex-wrap: wrap; }
+  /* Quick add strip */
+  .dash-quick-add {
+    padding: 14px 24px; border-top: 1px solid var(--border); flex-shrink: 0;
+    background: #f8fafc;
+  }
+  .dash-qa-title { font-size: 12px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px; }
+  .dash-qa-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .dash-qa-input { padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px;
+    font-size: 12px; background: var(--card); flex: 1; min-width: 100px; }
+  .dash-qa-input:focus { outline: none; border-color: var(--blue); }
+
+  /* ── Add Deadline modal ────────────────────────────────────────────────── */
+  .add-dl-modal { max-width: 480px; }
 </style>
 </head>
 <body>
@@ -627,6 +778,7 @@
         <span style="font-size:16px">+</span> Upload Document
       </button>
       <button class="btn-library" onclick="openLibrary()">📂 My Documents</button>
+      <button class="btn-deadlines" onclick="openDashboard()">📅 Deadline Dashboard</button>
     </div>
 
     <div class="sidebar-search">
@@ -647,7 +799,10 @@
         <div class="topbar-title" id="topbarTitle">Legal AI Agent</div>
         <div class="topbar-meta" id="topbarMeta">Upload a document to get started</div>
       </div>
-      <div style="display:flex;align-items:center;gap:16px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="alert-bell" id="alertBell" onclick="toggleAlertsPanel()" title="Upcoming deadlines" style="display:none">
+          🔔<span class="alert-count" id="alertCount" style="display:none">0</span>
+        </button>
         <div class="user-badge" id="userBadge" style="display:none">
           <div class="user-avatar" id="userAvatar"></div>
           <span class="user-name" id="userName"></span>
@@ -673,10 +828,11 @@
 
         <!-- Tabs -->
         <div class="tabs-bar">
-          <button class="tab-btn active" data-tab="overview"  onclick="switchTab('overview')">📋 Overview</button>
+          <button class="tab-btn active" data-tab="overview"   onclick="switchTab('overview')">📋 Overview</button>
           <button class="tab-btn"        data-tab="clauses"   onclick="switchTab('clauses')">📌 Clauses</button>
           <button class="tab-btn"        data-tab="risk"      onclick="switchTab('risk')">🛡 Risk Analysis</button>
           <button class="tab-btn"        data-tab="chat"      onclick="switchTab('chat')">💬 AI Chat</button>
+          <button class="tab-btn"        data-tab="deadlines" onclick="switchTab('deadlines')">📅 Deadlines<span class="dl-tab-badge" id="dlTabBadge" style="display:none"></span></button>
         </div>
 
         <!-- ── OVERVIEW ─────────────────────────────────────── -->
@@ -730,6 +886,18 @@
               <div class="clauses-grid" id="highRiskClauses"></div>
             </div>
 
+          </div>
+        </div>
+
+        <!-- ── DEADLINES ─────────────────────────────────────── -->
+        <div class="tab-panels" id="panel-deadlines" style="display:none;">
+          <div class="tab-panel active" id="tab-deadlines">
+            <div class="card">
+              <div class="card-title"><span class="card-title-icon">📅</span> Deadlines &amp; Key Dates</div>
+              <div class="dl-summary-bar" id="dlSummaryBar"></div>
+              <button class="btn btn-primary" style="font-size:12px;margin-bottom:14px" onclick="openAddDeadlineModal()">+ Add Deadline</button>
+              <div id="dlList"></div>
+            </div>
           </div>
         </div>
 
@@ -820,6 +988,113 @@
 
 <!-- ── Toast ─────────────────────────────────────────────────────────────── -->
 <div class="toast" id="toast"></div>
+
+<!-- ── Alerts slide-in panel ─────────────────────────────────────────────── -->
+<div class="alerts-panel" id="alertsPanel" style="display:none">
+  <div class="alerts-panel-header">
+    <span>Upcoming Deadlines</span>
+    <button class="dl-btn" onclick="toggleAlertsPanel()">✕</button>
+  </div>
+  <div class="alerts-panel-body" id="alertsPanelBody">
+    <p style="color:var(--text-muted);font-size:13px;padding:12px 0">Loading…</p>
+  </div>
+</div>
+
+<!-- ── Deadline Dashboard overlay ────────────────────────────────────────── -->
+<div class="dash-overlay hidden" id="dashOverlay" onclick="closeDashboardOuter(event)">
+  <div class="dash-modal" onclick="event.stopPropagation()">
+    <div class="dash-header">
+      <div>
+        <div class="dash-title">📅 Deadline Dashboard</div>
+        <div class="dash-sub">Track &amp; manage deadlines across all your cases</div>
+      </div>
+      <button class="dl-btn" style="font-size:16px;padding:4px 10px" onclick="closeDashboard()">✕</button>
+    </div>
+    <div class="dash-stats" id="dashStats"></div>
+    <div class="dash-filters">
+      <input class="dash-search" id="dashSearch" type="text" placeholder="Search case or deadline…" oninput="renderDashboard()"/>
+      <select class="dash-filter-sel" id="dashTypeFilter" onchange="renderDashboard()">
+        <option value="">All Types</option>
+        <option value="court_date">Court Date</option>
+        <option value="filing_window">Filing Window</option>
+        <option value="response_deadline">Response Deadline</option>
+        <option value="contract_expiry">Contract Expiry</option>
+        <option value="payment_due">Payment Due</option>
+        <option value="regulatory_deadline">Regulatory Deadline</option>
+        <option value="other">Other</option>
+      </select>
+      <select class="dash-filter-sel" id="dashStatusFilter" onchange="renderDashboard()">
+        <option value="active">Active</option>
+        <option value="">All</option>
+        <option value="dismissed">Dismissed</option>
+        <option value="snoozed">Snoozed</option>
+      </select>
+      <label class="dash-import-lbl">
+        📥 Import CSV
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="importCsv(event)"/>
+      </label>
+      <button class="dash-import-lbl" onclick="downloadCsvTemplate()">📄 Template</button>
+    </div>
+    <div class="dash-body" id="dashBody"></div>
+    <div class="dash-quick-add">
+      <div class="dash-qa-title">Quick Add Deadline</div>
+      <div class="dash-qa-row">
+        <select class="dash-qa-input" id="qaDocId" style="flex:2"></select>
+        <input  class="dash-qa-input" id="qaTitle" type="text" placeholder="Deadline title…" style="flex:3"/>
+        <input  class="dash-qa-input" id="qaDate"  type="date" style="flex:1.5"/>
+        <select class="dash-qa-input" id="qaType"  style="flex:2">
+          <option value="filing_window">Filing Window</option>
+          <option value="court_date">Court Date</option>
+          <option value="response_deadline">Response Deadline</option>
+          <option value="contract_expiry">Contract Expiry</option>
+          <option value="payment_due">Payment Due</option>
+          <option value="regulatory_deadline">Regulatory Deadline</option>
+          <option value="other">Other</option>
+        </select>
+        <button class="btn btn-primary" style="font-size:12px;white-space:nowrap" onclick="quickAddDeadline()">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Deadline modal (per-doc) ──────────────────────────────────────── -->
+<div class="overlay" id="addDlOverlay" onclick="closeAddDeadlineModal(event)">
+  <div class="modal add-dl-modal" onclick="event.stopPropagation()">
+    <div class="modal-title">📅 Add Deadline</div>
+    <div class="auth-field">
+      <label class="auth-label">Title *</label>
+      <input class="auth-input" id="addDlTitle" type="text" placeholder="e.g. Answer filing deadline"/>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Date</label>
+      <input class="auth-input" id="addDlDate" type="date"/>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Or describe relative timing</label>
+      <input class="auth-input" id="addDlApprox" type="text" placeholder="e.g. 30 days after service"/>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Type</label>
+      <select class="auth-input" id="addDlType">
+        <option value="filing_window">Filing Window</option>
+        <option value="court_date">Court Date</option>
+        <option value="response_deadline">Response Deadline</option>
+        <option value="contract_expiry">Contract Expiry</option>
+        <option value="payment_due">Payment Due</option>
+        <option value="regulatory_deadline">Regulatory Deadline</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="auth-field">
+      <label class="auth-label">Notes</label>
+      <input class="auth-input" id="addDlDesc" type="text" placeholder="Optional description"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeAddDeadlineModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAddDeadline()">Add Deadline</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ── State ──────────────────────────────────────────────────────────────── */
@@ -938,6 +1213,7 @@ async function doLogout() {
         hideAuthOverlay();
         showUserBadge(me.username);
         await loadDocs();
+        loadAlerts();
         return;
       }
     } catch { }
@@ -1564,7 +1840,7 @@ async function removeDocFromLibrary(id) {
 }
 
 /* ── Tab switching ──────────────────────────────────────────────────────── */
-const PANELS = ['overview', 'clauses', 'risk', 'chat'];
+const PANELS = ['overview', 'clauses', 'risk', 'chat', 'deadlines'];
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => {
@@ -1743,6 +2019,494 @@ function showToast(msg, type = '') {
   t.className   = `toast ${type}`;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DEADLINES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── State ──────────────────────────────────────────────────────────────── */
+let docDeadlines   = [];   // deadlines for currently open document
+let alertDeadlines = [];   // upcoming deadlines across all docs (for bell)
+let allDeadlines   = [];   // all deadlines for dashboard (loaded on open)
+let _alertPollTimer = null;
+const ALERT_POLL_MS = 5 * 60 * 1000;
+
+/* ── Utility ─────────────────────────────────────────────────────────────── */
+function dlDaysLeft(isoDate) {
+  if (!isoDate) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.round((new Date(isoDate + 'T00:00:00') - today) / 86400000);
+}
+
+function dlFormatDate(isoDate) {
+  if (!isoDate) return '';
+  try {
+    return new Date(isoDate + 'T00:00:00').toLocaleDateString(undefined,
+      { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch { return isoDate; }
+}
+
+function dlUrgencyClass(daysLeft) {
+  if (daysLeft === null) return 'dl-urgency-normal';
+  if (daysLeft < 0)   return 'dl-urgency-overdue';
+  if (daysLeft <= 7)  return 'dl-urgency-soon';
+  return 'dl-urgency-normal';
+}
+
+function dlDaysText(daysLeft, isoDate, approx) {
+  if (daysLeft === null) return approx ? `<span class="dl-days">${esc(approx)}</span>` : '';
+  if (daysLeft < 0)  return `<span class="dl-days dl-days-overdue">${Math.abs(daysLeft)} days overdue</span>`;
+  if (daysLeft === 0) return `<span class="dl-days dl-days-overdue">Due TODAY</span>`;
+  if (daysLeft <= 7)  return `<span class="dl-days dl-days-soon">${daysLeft} days left &middot; ${dlFormatDate(isoDate)}</span>`;
+  return `<span class="dl-days dl-days-ok">${daysLeft} days &middot; ${dlFormatDate(isoDate)}</span>`;
+}
+
+function dlTypeLabel(type) {
+  return (type || 'other').replace(/_/g, ' ');
+}
+
+/* ── Per-doc Deadlines tab ───────────────────────────────────────────────── */
+async function loadDeadlines(docId) {
+  try {
+    const r = await fetch(`${API}/api/deadlines?doc_id=${docId}`, { headers: authHeaders() });
+    docDeadlines = await r.json();
+  } catch { docDeadlines = []; }
+  renderDeadlineTab();
+}
+
+function renderDeadlineTab() {
+  const list    = document.getElementById('dlList');
+  const summary = document.getElementById('dlSummaryBar');
+  if (!list) return;
+
+  const enriched = docDeadlines.map(dl => ({ ...dl, daysLeft: dlDaysLeft(dl.date) }));
+  renderDlSummary(enriched, summary);
+  updateDlTabBadge(enriched);
+
+  if (!enriched.length) {
+    list.innerHTML = '<p style="color:var(--text-muted);font-size:13px">No deadlines extracted. Claude will detect dates automatically on upload. Use the button above to add manually.</p>';
+    return;
+  }
+  list.innerHTML = enriched.map(dl => dlItemHtml(dl, false)).join('');
+}
+
+function dlItemHtml(dl, showCase) {
+  const daysLeft = dl.daysLeft ?? dlDaysLeft(dl.date);
+  const urgCls   = dlUrgencyClass(daysLeft);
+  const daysHtml = dlDaysText(daysLeft, dl.date, dl.date_approximate);
+  const dismissed = dl.status === 'dismissed';
+  const snoozed   = dl.status === 'snoozed';
+  const caseDoc   = allDocs.find(d => d.id === dl.doc_id);
+  return `
+  <div class="deadline-item" id="dl-item-${dl.id}" style="${dismissed ? 'opacity:.45' : ''}">
+    <div class="dl-urgency ${urgCls}"></div>
+    <div class="dl-body">
+      ${showCase ? `<div class="dl-meta" style="margin-bottom:2px">📁 ${esc(caseDoc?.filename || dl.doc_id)}</div>` : ''}
+      <div class="dl-title">${esc(dl.title)}</div>
+      <div class="dl-meta">
+        <span class="dl-type-chip">${esc(dlTypeLabel(dl.type))}</span>
+        ${dl.source_clause ? esc(dl.source_clause) : ''}
+      </div>
+      ${dl.description ? `<div style="font-size:12px;color:var(--text-muted);margin-bottom:3px">${esc(dl.description)}</div>` : ''}
+      ${daysHtml}
+      ${snoozed && dl.snoozed_until ? `<div style="font-size:11px;color:var(--text-muted)">Snoozed until ${dlFormatDate(dl.snoozed_until)}</div>` : ''}
+    </div>
+    <div class="dl-actions">
+      ${!dismissed ? `
+        <button class="dl-btn" onclick="dlSnooze('${dl.id}',7,'tab')" title="Snooze 7 days">💤 7d</button>
+        <button class="dl-btn" onclick="dlDismiss('${dl.id}','tab')" title="Dismiss">✓ Done</button>
+      ` : `
+        <button class="dl-btn" onclick="dlReinstate('${dl.id}','tab')">Restore</button>
+      `}
+      <button class="dl-btn dl-btn-danger" onclick="dlDelete('${dl.id}','tab')" title="Delete">✕</button>
+    </div>
+  </div>`;
+}
+
+function renderDlSummary(enriched, el) {
+  if (!el) return;
+  const active   = enriched.filter(d => d.status === 'active');
+  const overdue  = active.filter(d => d.daysLeft !== null && d.daysLeft < 0).length;
+  const soon     = active.filter(d => d.daysLeft !== null && d.daysLeft >= 0 && d.daysLeft <= 7).length;
+  const upcoming = active.filter(d => d.daysLeft === null || d.daysLeft > 7).length;
+  el.innerHTML = [
+    overdue  ? `<span class="dl-chip dl-chip-overdue">🔴 ${overdue} overdue</span>` : '',
+    soon     ? `<span class="dl-chip dl-chip-soon">🟡 ${soon} due this week</span>` : '',
+    upcoming ? `<span class="dl-chip dl-chip-ok">🟢 ${upcoming} upcoming</span>` : '',
+  ].filter(Boolean).join('');
+}
+
+function updateDlTabBadge(enriched) {
+  const badge = document.getElementById('dlTabBadge');
+  if (!badge) return;
+  const urgent = (enriched || docDeadlines.map(d => ({ ...d, daysLeft: dlDaysLeft(d.date) })))
+    .filter(d => d.status === 'active' && d.daysLeft !== null && d.daysLeft <= 7).length;
+  badge.textContent = urgent;
+  badge.style.display = urgent > 0 ? 'inline-block' : 'none';
+}
+
+/* ── Actions (tab context) ───────────────────────────────────────────────── */
+async function dlPatch(id, patch, context) {
+  try {
+    const r = await fetch(`${API}/api/deadlines/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(patch),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const updated = await r.json();
+    // sync to relevant list
+    const syncList = (arr) => { const i = arr.findIndex(d => d.id === id); if (i !== -1) arr[i] = updated; };
+    syncList(docDeadlines); syncList(alertDeadlines); syncList(allDeadlines);
+    if (context === 'tab')   { renderDeadlineTab(); loadAlerts(); }
+    if (context === 'dash')  { renderDashboard(); loadAlerts(); }
+    if (context === 'alert') { renderAlertsPanel(); updateAlertBell(); }
+  } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+}
+
+function dlDismiss(id, ctx)       { dlPatch(id, { status: 'dismissed' }, ctx); }
+function dlReinstate(id, ctx)     { dlPatch(id, { status: 'active', snoozed_until: null }, ctx); }
+function dlSnooze(id, days, ctx)  {
+  const d = new Date(); d.setDate(d.getDate() + days);
+  dlPatch(id, { status: 'snoozed', snoozed_until: d.toISOString().split('T')[0] }, ctx);
+}
+
+async function dlDelete(id, ctx) {
+  if (!confirm('Delete this deadline?')) return;
+  try {
+    await fetch(`${API}/api/deadlines/${id}`, { method: 'DELETE', headers: authHeaders() });
+    docDeadlines  = docDeadlines.filter(d => d.id !== id);
+    alertDeadlines = alertDeadlines.filter(d => d.id !== id);
+    allDeadlines  = allDeadlines.filter(d => d.id !== id);
+    if (ctx === 'tab')  { renderDeadlineTab(); loadAlerts(); }
+    if (ctx === 'dash') { renderDashboard(); loadAlerts(); }
+    if (ctx === 'alert'){ renderAlertsPanel(); updateAlertBell(); }
+  } catch (e) { showToast('Delete failed', 'error'); }
+}
+
+/* ── Add Deadline modal ─────────────────────────────────────────────────── */
+function openAddDeadlineModal() {
+  ['addDlTitle','addDlDate','addDlApprox','addDlDesc'].forEach(id =>
+    document.getElementById(id).value = '');
+  document.getElementById('addDlType').value = 'filing_window';
+  document.getElementById('addDlOverlay').classList.add('visible');
+}
+
+function closeAddDeadlineModal(e) {
+  if (!e || e.target === document.getElementById('addDlOverlay'))
+    document.getElementById('addDlOverlay').classList.remove('visible');
+}
+
+async function saveAddDeadline() {
+  const title = document.getElementById('addDlTitle').value.trim();
+  if (!title) { showToast('Title is required', 'error'); return; }
+  try {
+    const r = await fetch(`${API}/api/deadlines`, {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        doc_id: currentDocId,
+        title,
+        date:             document.getElementById('addDlDate').value  || null,
+        date_approximate: document.getElementById('addDlApprox').value.trim() || null,
+        type:             document.getElementById('addDlType').value,
+        description:      document.getElementById('addDlDesc').value.trim(),
+      }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+    const dl = await r.json();
+    docDeadlines.push(dl);
+    docDeadlines.sort((a, b) => (a.date || '9999') < (b.date || '9999') ? -1 : 1);
+    renderDeadlineTab();
+    closeAddDeadlineModal();
+    showToast('Deadline added', 'success');
+    loadAlerts();
+  } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+}
+
+/* ── Alert bell ─────────────────────────────────────────────────────────── */
+async function loadAlerts() {
+  if (!getToken()) return;
+  try {
+    const r  = await fetch(`${API}/api/deadlines/alerts?days_ahead=14`, { headers: authHeaders() });
+    alertDeadlines = await r.json();
+    updateAlertBell();
+  } catch { }
+  if (_alertPollTimer) clearTimeout(_alertPollTimer);
+  _alertPollTimer = setTimeout(loadAlerts, ALERT_POLL_MS);
+}
+
+function updateAlertBell() {
+  const bell  = document.getElementById('alertBell');
+  const badge = document.getElementById('alertCount');
+  if (!bell || !badge) return;
+  const count = alertDeadlines.filter(d => d.status === 'active').length;
+  bell.style.display = '';
+  if (count > 0) {
+    badge.textContent = count > 9 ? '9+' : count;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+/* ── Alerts panel ────────────────────────────────────────────────────────── */
+function toggleAlertsPanel() {
+  const panel = document.getElementById('alertsPanel');
+  const shown = panel.style.display !== 'none';
+  panel.style.display = shown ? 'none' : 'flex';
+  if (!shown) renderAlertsPanel();
+}
+
+function renderAlertsPanel() {
+  const body = document.getElementById('alertsPanelBody');
+  if (!body) return;
+  if (!alertDeadlines.length) {
+    body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:12px 0">No deadlines due in the next 14 days.</p>';
+    return;
+  }
+  body.innerHTML = alertDeadlines.map(dl => {
+    const daysLeft = dl.days_left;
+    const daysHtml = dl.overdue
+      ? `<span style="color:var(--red);font-size:12px;font-weight:600">${Math.abs(daysLeft)} days overdue</span>`
+      : daysLeft === 0
+        ? `<span style="color:var(--red);font-size:12px;font-weight:600">Due TODAY</span>`
+        : `<span style="color:${daysLeft <= 3 ? 'var(--red)' : 'var(--amber)'};font-size:12px;font-weight:600">${daysLeft} days left</span>`;
+    const caseDoc = allDocs.find(d => d.id === dl.doc_id);
+    return `
+    <div class="alert-item">
+      <div class="alert-item-title">${esc(dl.title)}</div>
+      <div class="alert-item-case">📁 ${esc(caseDoc?.filename || dl.doc_id)}</div>
+      <div>${daysHtml} &middot; ${dlFormatDate(dl.date)}</div>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        <button class="dl-btn" onclick="dlSnooze('${dl.id}',7,'alert')" style="font-size:11px">💤 Snooze 7d</button>
+        <button class="dl-btn" onclick="openDocDeadlines('${dl.doc_id}')">Open case</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openDocDeadlines(docId) {
+  document.getElementById('alertsPanel').style.display = 'none';
+  await selectDoc(docId);
+  switchTab('deadlines');
+}
+
+/* ── Deadline Dashboard ──────────────────────────────────────────────────── */
+async function openDashboard() {
+  document.getElementById('dashOverlay').classList.remove('hidden');
+  document.getElementById('dashSearch').value = '';
+  document.getElementById('dashTypeFilter').value   = '';
+  document.getElementById('dashStatusFilter').value = 'active';
+  // populate case dropdown
+  populateQaDocSelect();
+  // load all deadlines for this user
+  try {
+    const r = await fetch(`${API}/api/deadlines`, { headers: authHeaders() });
+    allDeadlines = await r.json();
+  } catch { allDeadlines = []; }
+  renderDashboard();
+}
+
+function closeDashboard() {
+  document.getElementById('dashOverlay').classList.add('hidden');
+}
+
+function closeDashboardOuter(e) {
+  if (e.target === document.getElementById('dashOverlay')) closeDashboard();
+}
+
+function populateQaDocSelect() {
+  const sel = document.getElementById('qaDocId');
+  sel.innerHTML = '<option value="">— Select case —</option>' +
+    allDocs.map(d => `<option value="${d.id}">${esc(d.filename)}</option>`).join('');
+}
+
+function renderDashboard() {
+  const q      = (document.getElementById('dashSearch')?.value || '').toLowerCase();
+  const typeF  = document.getElementById('dashTypeFilter')?.value  || '';
+  const statF  = document.getElementById('dashStatusFilter')?.value ?? 'active';
+
+  const filtered = allDeadlines.filter(dl => {
+    const doc = allDocs.find(d => d.id === dl.doc_id);
+    const matchQ = !q
+      || (dl.title || '').toLowerCase().includes(q)
+      || (doc?.filename || '').toLowerCase().includes(q);
+    const matchT = !typeF   || dl.type === typeF;
+    const matchS = !statF   || dl.status === statF;
+    return matchQ && matchT && matchS;
+  });
+
+  const enriched = filtered.map(dl => ({ ...dl, daysLeft: dlDaysLeft(dl.date) }));
+  enriched.sort((a, b) => {
+    // overdue first, then by date asc
+    const da = a.date || '9999-99-99', db = b.date || '9999-99-99';
+    return da < db ? -1 : 1;
+  });
+
+  // Stats over ALL active deadlines
+  const allActive = allDeadlines.filter(d => d.status === 'active')
+    .map(d => ({ ...d, daysLeft: dlDaysLeft(d.date) }));
+  const statsEl = document.getElementById('dashStats');
+  if (statsEl) renderDlSummary(allActive, statsEl);
+
+  const body = document.getElementById('dashBody');
+  if (!body) return;
+
+  if (!enriched.length) {
+    body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;padding:24px 0">No deadlines match your filters.</p>';
+    return;
+  }
+
+  body.innerHTML = enriched.map(dl => {
+    const doc      = allDocs.find(d => d.id === dl.doc_id);
+    const daysLeft = dl.daysLeft;
+    const urgCls   = dlUrgencyClass(daysLeft);
+    const daysHtml = dlDaysText(daysLeft, dl.date, dl.date_approximate);
+    const dismissed = dl.status === 'dismissed';
+    const dateDisplay = dl.date
+      ? `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" title="Click to edit date">${dlFormatDate(dl.date)}</span>`
+      : `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" title="Click to set date" style="color:var(--text-muted)">No date — click to set</span>`;
+    return `
+    <div class="dash-item" id="dash-dl-${dl.id}" style="${dismissed ? 'opacity:.45' : ''}">
+      <div class="dl-urgency ${urgCls}"></div>
+      <div class="dash-item-body">
+        <div class="dash-item-case">📁 ${esc(doc?.filename || dl.doc_id)}</div>
+        <div class="dash-item-title">${esc(dl.title)}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:3px">
+          <span class="dl-type-chip">${esc(dlTypeLabel(dl.type))}</span>
+          <span id="dash-date-${dl.id}">${dateDisplay}</span>
+          ${daysHtml}
+        </div>
+        ${dl.description ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(dl.description)}</div>` : ''}
+      </div>
+      <div class="dash-item-actions">
+        ${!dismissed ? `
+          <button class="dl-btn" onclick="dlSnooze('${dl.id}',7,'dash')" title="Snooze 7 days">💤</button>
+          <button class="dl-btn" onclick="dlDismiss('${dl.id}','dash')">✓ Done</button>
+        ` : `
+          <button class="dl-btn" onclick="dlReinstate('${dl.id}','dash')">Restore</button>
+        `}
+        <button class="dl-btn dl-btn-danger" onclick="dlDelete('${dl.id}','dash')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── Inline date editing in dashboard ───────────────────────────────────── */
+function startInlineEdit(id) {
+  const dl  = allDeadlines.find(d => d.id === id);
+  const el  = document.getElementById(`dash-date-${id}`);
+  if (!el) return;
+  const inp = document.createElement('input');
+  inp.type  = 'date';
+  inp.className = 'dash-date-input';
+  inp.value = dl?.date || '';
+  inp.onblur  = () => commitInlineEdit(id, inp.value);
+  inp.onkeydown = (e) => {
+    if (e.key === 'Enter') inp.blur();
+    if (e.key === 'Escape') { renderDashboard(); }
+  };
+  el.innerHTML = '';
+  el.appendChild(inp);
+  inp.focus();
+}
+
+async function commitInlineEdit(id, newDate) {
+  if (!newDate) { renderDashboard(); return; }
+  await dlPatch(id, { date: newDate }, 'dash');
+}
+
+/* ── Quick Add from dashboard ───────────────────────────────────────────── */
+async function quickAddDeadline() {
+  const docId = document.getElementById('qaDocId').value;
+  const title = document.getElementById('qaTitle').value.trim();
+  const d     = document.getElementById('qaDate').value;
+  const type  = document.getElementById('qaType').value;
+  if (!docId) { showToast('Select a case first', 'error'); return; }
+  if (!title) { showToast('Title is required', 'error'); return; }
+  try {
+    const r = await fetch(`${API}/api/deadlines`, {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ doc_id: docId, title, date: d || null, type }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+    const dl = await r.json();
+    allDeadlines.push(dl);
+    // also push to docDeadlines if same doc is open
+    if (docId === currentDocId) { docDeadlines.push(dl); renderDeadlineTab(); }
+    document.getElementById('qaTitle').value = '';
+    document.getElementById('qaDate').value  = '';
+    renderDashboard();
+    loadAlerts();
+    showToast('Deadline added', 'success');
+  } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+}
+
+/* ── CSV Import ─────────────────────────────────────────────────────────── */
+async function importCsv(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch(`${API}/api/deadlines/import`, {
+      method: 'POST', headers: authHeaders(), body: fd,
+    });
+    const result = await r.json();
+    if (!r.ok) throw new Error(result.detail || r.statusText);
+    showToast(`✓ Imported ${result.created} deadline(s)${result.skipped ? ', ' + result.skipped + ' skipped' : ''}`, 'success');
+    // Reload all deadlines for dashboard
+    const r2 = await fetch(`${API}/api/deadlines`, { headers: authHeaders() });
+    allDeadlines = await r2.json();
+    if (currentDocId) {
+      docDeadlines = allDeadlines.filter(d => d.doc_id === currentDocId);
+      renderDeadlineTab();
+    }
+    renderDashboard();
+    loadAlerts();
+    if (result.skipped_details?.length) {
+      console.warn('Skipped rows:', result.skipped_details);
+    }
+  } catch (e) { showToast('Import failed: ' + e.message, 'error'); }
+}
+
+function downloadCsvTemplate() {
+  const header  = 'doc_name,title,date,type,description';
+  const example = `${allDocs[0]?.filename || 'Smith v Jones Contract.pdf'},Answer filing deadline,2026-04-15,filing_window,File answer to complaint`;
+  const blob = new Blob([header + '\n' + example], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'deadlines_template.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+/* ── Wire into existing functions ───────────────────────────────────────── */
+// Patch onAuthSuccess to start alert polling and show bell
+const _origOnAuthSuccess = onAuthSuccess;
+function onAuthSuccess(data) {
+  _origOnAuthSuccess(data);
+  loadAlerts();
+}
+
+// Patch doLogout to clear deadline state
+const _origDoLogout = doLogout;
+async function doLogout() {
+  if (_alertPollTimer) { clearTimeout(_alertPollTimer); _alertPollTimer = null; }
+  docDeadlines = []; alertDeadlines = []; allDeadlines = [];
+  document.getElementById('alertsPanel').style.display = 'none';
+  document.getElementById('alertBell').style.display  = 'none';
+  await _origDoLogout();
+}
+
+// Patch renderDocView to load deadlines for current doc
+const _origRenderDocView = renderDocView;
+function renderDocView() {
+  _origRenderDocView();
+  loadDeadlines(currentDocId);
 }
 </script>
 </body>

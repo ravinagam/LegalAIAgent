@@ -2,13 +2,15 @@
 Legal AI Agent — FastAPI Backend
 Analyzes legal documents: summaries, clause extraction, risk analysis, AI chat.
 """
+import csv
 import hashlib
+import io
 import json
 import logging
 import os
 import traceback
 import uuid
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 from typing import AsyncGenerator
@@ -91,6 +93,25 @@ async def _mongo_delete_doc(doc_id: str) -> None:
         await _grid_fs.delete(gf._id)
 
 
+async def _mongo_load_deadlines() -> None:
+    async for d in _mongo_db.deadlines.find():
+        d.pop("_id", None)
+        deadlines_db[d["id"]] = d
+
+
+async def _mongo_save_deadline(dl: dict) -> None:
+    data = {"_id": dl["id"], **dl}
+    await _mongo_db.deadlines.replace_one({"_id": dl["id"]}, data, upsert=True)
+
+
+async def _mongo_delete_deadline(dl_id: str) -> None:
+    await _mongo_db.deadlines.delete_one({"_id": dl_id})
+
+
+async def _mongo_delete_deadlines_for_doc(doc_id: str) -> None:
+    await _mongo_db.deadlines.delete_many({"doc_id": doc_id})
+
+
 async def _mongo_save_original(doc_id: str, ext: str, data: bytes) -> None:
     """Store (or replace) original binary in GridFS."""
     fname = f"{doc_id}_original{ext}"
@@ -135,10 +156,12 @@ async def startup_check():
             log.info("=" * 50)
             users_db.clear()
             documents.clear()
+            deadlines_db.clear()
             await _mongo_load_users()
             await _mongo_load_docs()
-            log.info("Loaded %d users, %d documents from MongoDB",
-                     len(users_db), len(documents))
+            await _mongo_load_deadlines()
+            log.info("Loaded %d users, %d documents, %d deadlines from MongoDB",
+                     len(users_db), len(documents), len(deadlines_db))
         else:
             log.warning("MongoDB unavailable — using file storage fallback")
 app.add_middleware(
@@ -230,6 +253,53 @@ def _load_docs_from_disk() -> None:
 
 
 _load_docs_from_disk()
+
+# ---------------------------------------------------------------------------
+# Deadline store + disk persistence
+# ---------------------------------------------------------------------------
+deadlines_db: dict[str, dict] = {}
+_DEADLINES_FILE = _DATA_ROOT / "deadlines.json"
+
+
+def _save_deadlines_to_disk() -> None:
+    try:
+        _DEADLINES_FILE.write_text(json.dumps(deadlines_db, indent=2), encoding="utf-8")
+    except Exception as exc:
+        log.warning("Failed to save deadlines to disk: %s", exc)
+
+
+def _load_deadlines_from_disk() -> None:
+    if _DEADLINES_FILE.exists():
+        try:
+            data = json.loads(_DEADLINES_FILE.read_text(encoding="utf-8"))
+            deadlines_db.update(data)
+        except Exception as exc:
+            log.warning("Failed to load deadlines from disk: %s", exc)
+
+
+def _create_deadlines_from_analysis(doc_id: str, owner: str, analysis: dict) -> None:
+    """Parse the deadlines array from a Claude analysis and store in deadlines_db."""
+    for dl_raw in analysis.get("deadlines", []):
+        if not dl_raw.get("date") and not dl_raw.get("date_approximate"):
+            continue
+        dl_id = str(uuid.uuid4())
+        deadlines_db[dl_id] = {
+            "id": dl_id,
+            "doc_id": doc_id,
+            "owner": owner,
+            "title": dl_raw.get("title") or "Unnamed deadline",
+            "date": dl_raw.get("date"),
+            "date_approximate": dl_raw.get("date_approximate"),
+            "type": dl_raw.get("type") or "other",
+            "description": dl_raw.get("description") or "",
+            "source_clause": dl_raw.get("source_clause"),
+            "status": "active",
+            "snoozed_until": None,
+            "created_at": datetime.now().isoformat(),
+        }
+
+
+_load_deadlines_from_disk()
 
 # ---------------------------------------------------------------------------
 # MIME types for original file download
@@ -548,7 +618,10 @@ def extract_text(data: bytes, filename: str) -> str:
 
 ANALYSIS_SYSTEM = """You are an expert legal analyst AI. Your task is to analyze legal documents
 and produce structured JSON output. Always respond with ONLY valid JSON — no markdown fences,
-no extra text. Be thorough, precise, and highlight risks clearly."""
+no extra text. Be thorough, precise, and highlight risks clearly.
+Pay special attention to ALL dates with attached obligations: court dates, filing deadlines,
+response windows, contract expiry dates, payment due dates, and regulatory deadlines.
+Extract every actionable date into the deadlines array."""
 
 # NOTE: Use plain string concatenation for the document text — never .format() or
 # f-strings — because legal documents routinely contain { } characters (e.g. ${1,000},
@@ -575,6 +648,16 @@ exactly this structure (no extra keys):
       "content": "verbatim or close-paraphrase of the clause text",
       "risk_level": "Low | Medium | High",
       "risk_note": "brief note on why this clause is risky or what to watch out for (null if low risk)"
+    }
+  ],
+  "deadlines": [
+    {
+      "title": "short human-readable label e.g. 'Answer filing deadline' or 'Contract expiry'",
+      "date": "YYYY-MM-DD string if a fixed calendar date is given, else null",
+      "date_approximate": "relative timing description e.g. '30 days after signing' — null if fixed date provided",
+      "type": "one of: court_date | filing_window | response_deadline | contract_expiry | payment_due | regulatory_deadline | other",
+      "description": "what must happen by this date",
+      "source_clause": "clause title or section reference, or null"
     }
   ]
 }
@@ -628,6 +711,7 @@ async def analyze_document(text: str, filename: str) -> dict:
             "risk_factors": [],
             "key_obligations": [],
             "clauses": [],
+            "deadlines": [],
         }
 
 
@@ -706,6 +790,24 @@ class ChatRequest(BaseModel):
 
 class ClearHistoryRequest(BaseModel):
     pass
+
+
+class CreateDeadlineRequest(BaseModel):
+    doc_id: str
+    title: str
+    date: str | None = None
+    date_approximate: str | None = None
+    type: str = "other"
+    description: str = ""
+    source_clause: str | None = None
+
+
+class UpdateDeadlineRequest(BaseModel):
+    status: str | None = None
+    snoozed_until: str | None = None
+    title: str | None = None
+    date: str | None = None
+    description: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -853,6 +955,17 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
         await _mongo_save_doc(documents[doc_id])
     else:
         _save_doc(documents[doc_id])
+
+    # Auto-create deadlines from analysis
+    _create_deadlines_from_analysis(doc_id, owner, analysis)
+    new_dls = [d for d in deadlines_db.values() if d.get("doc_id") == doc_id]
+    if new_dls:
+        if _mongo_db is not None:
+            for dl in new_dls:
+                await _mongo_save_deadline(dl)
+        else:
+            _save_deadlines_to_disk()
+        log.info("Created %d deadline(s) for doc %s", len(new_dls), doc_id)
 
     log.info("Document %s stored successfully (owner=%s)", doc_id, owner or "anonymous")
     return {
@@ -1002,6 +1115,18 @@ async def update_document(doc_id: str, body: UpdateDocRequest):
             raise HTTPException(status_code=500, detail=f"Re-analysis failed: {exc}")
         doc["analysis"] = analysis
         doc["chat_history"] = []   # clear chat — document content changed
+        # Refresh deadlines for this doc
+        for dl_id in [k for k, v in list(deadlines_db.items()) if v.get("doc_id") == doc_id]:
+            del deadlines_db[dl_id]
+        if _mongo_db is not None:
+            await _mongo_delete_deadlines_for_doc(doc_id)
+        _create_deadlines_from_analysis(doc_id, doc.get("owner", ""), analysis)
+        new_dls = [d for d in deadlines_db.values() if d.get("doc_id") == doc_id]
+        if _mongo_db is not None:
+            for dl in new_dls:
+                await _mongo_save_deadline(dl)
+        else:
+            _save_deadlines_to_disk()
 
     # Regenerate the downloadable binary so it reflects the edited text
     ext = doc.get("original_ext", Path(doc.get("filename", "document.txt")).suffix.lower())
@@ -1045,8 +1170,14 @@ async def delete_document(doc_id: str):
     del documents[doc_id]
     if _mongo_db is not None:
         await _mongo_delete_doc(doc_id)
+        await _mongo_delete_deadlines_for_doc(doc_id)
     else:
         _delete_doc_file(doc_id)
+    # Remove from in-memory deadlines_db
+    for dl_id in [k for k, v in list(deadlines_db.items()) if v.get("doc_id") == doc_id]:
+        del deadlines_db[dl_id]
+    if _mongo_db is None:
+        _save_deadlines_to_disk()
     log.info("Document deleted: %s ('%s')", doc_id, filename)
     return {"status": "deleted"}
 
@@ -1080,6 +1211,197 @@ async def clear_chat_history(doc_id: str):
         _save_doc(doc)
     log.info("Chat history cleared for doc %s", doc_id)
     return {"status": "cleared"}
+
+
+# ---------------------------------------------------------------------------
+# Deadline routes — must register /alerts and /import before /{dl_id} routes
+# ---------------------------------------------------------------------------
+
+@app.get("/api/deadlines/alerts")
+async def get_deadline_alerts(request: Request, days_ahead: int = 14):
+    """Return active deadlines due within `days_ahead` days for the current user."""
+    owner = _token_to_user(request) or ""
+    today  = date.today()
+    cutoff = today + timedelta(days=days_ahead)
+    results = []
+    for dl in deadlines_db.values():
+        if owner and dl.get("owner") != owner:
+            continue
+        if dl.get("status") == "dismissed":
+            continue
+        if not dl.get("date"):
+            continue
+        try:
+            dl_date = date.fromisoformat(dl["date"])
+        except ValueError:
+            continue
+        # skip if still snoozed
+        if dl.get("snoozed_until"):
+            try:
+                if today < date.fromisoformat(dl["snoozed_until"]):
+                    continue
+            except ValueError:
+                pass
+        if dl_date <= cutoff:
+            days_left = (dl_date - today).days
+            results.append({**dl, "days_left": days_left, "overdue": days_left < 0})
+    results.sort(key=lambda d: d.get("date") or "9999-99-99")
+    return results
+
+
+@app.post("/api/deadlines/import")
+async def import_deadlines_csv(request: Request, file: UploadFile = File(...)):
+    """Bulk-import deadlines from a CSV file.
+
+    Expected columns: doc_name, title, date (YYYY-MM-DD), type, description
+    doc_name is matched (case-insensitive, partial) against document filenames.
+    """
+    owner = _token_to_user(request) or ""
+    raw   = await file.read()
+    text  = raw.decode("utf-8", errors="replace")
+
+    # Build filename → doc_id lookup for this user
+    doc_by_name = {
+        d["filename"].lower(): d["id"]
+        for d in documents.values()
+        if not owner or d.get("owner") == owner
+    }
+
+    created: list[dict] = []
+    skipped: list[dict] = []
+
+    try:
+        reader = csv.DictReader(io.StringIO(text))
+        for row in reader:
+            doc_name = (row.get("doc_name") or row.get("case_name") or "").strip().lower()
+            title    = (row.get("title") or "").strip()
+            dl_date  = (row.get("date") or "").strip()
+            dl_type  = (row.get("type") or "other").strip()
+            desc     = (row.get("description") or "").strip()
+
+            if not title:
+                skipped.append({"row": dict(row), "reason": "missing title"})
+                continue
+
+            # Exact match first, then partial
+            doc_id = doc_by_name.get(doc_name)
+            if doc_name and not doc_id:
+                doc_id = next(
+                    (v for k, v in doc_by_name.items() if doc_name in k or k in doc_name),
+                    None,
+                )
+            if not doc_id:
+                skipped.append({"row": dict(row), "reason": f"document '{doc_name}' not found"})
+                continue
+
+            if dl_date:
+                try:
+                    date.fromisoformat(dl_date)
+                except ValueError:
+                    skipped.append({"row": dict(row), "reason": f"invalid date '{dl_date}'"})
+                    continue
+
+            dl_id = str(uuid.uuid4())
+            dl = {
+                "id": dl_id, "doc_id": doc_id, "owner": owner,
+                "title": title, "date": dl_date or None,
+                "date_approximate": None, "type": dl_type,
+                "description": desc, "source_clause": None,
+                "status": "active", "snoozed_until": None,
+                "created_at": datetime.now().isoformat(),
+            }
+            deadlines_db[dl_id] = dl
+            created.append(dl)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"CSV parse error: {exc}")
+
+    if created:
+        if _mongo_db is not None:
+            for dl in created:
+                await _mongo_save_deadline(dl)
+        else:
+            _save_deadlines_to_disk()
+
+    log.info("CSV deadline import: %d created, %d skipped", len(created), len(skipped))
+    return {"created": len(created), "skipped": len(skipped), "skipped_details": skipped[:10]}
+
+
+@app.get("/api/deadlines")
+async def list_deadlines(request: Request, doc_id: str = None, status: str = None):
+    """List deadlines for the current user, optionally filtered by doc_id or status."""
+    owner = _token_to_user(request) or ""
+    results = [
+        dl for dl in deadlines_db.values()
+        if (not owner or dl.get("owner") == owner)
+        and (not doc_id or dl.get("doc_id") == doc_id)
+        and (not status or dl.get("status") == status)
+    ]
+    results.sort(key=lambda d: d.get("date") or "9999-99-99")
+    return results
+
+
+@app.post("/api/deadlines")
+async def create_deadline(request: Request, body: CreateDeadlineRequest):
+    """Manually create a deadline attached to a document."""
+    owner = _token_to_user(request) or ""
+    if body.doc_id and body.doc_id not in documents:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    dl_id = str(uuid.uuid4())
+    dl = {
+        "id": dl_id, "doc_id": body.doc_id, "owner": owner,
+        "title": body.title.strip(),
+        "date": body.date, "date_approximate": body.date_approximate,
+        "type": body.type, "description": body.description,
+        "source_clause": body.source_clause,
+        "status": "active", "snoozed_until": None,
+        "created_at": datetime.now().isoformat(),
+    }
+    deadlines_db[dl_id] = dl
+    if _mongo_db is not None:
+        await _mongo_save_deadline(dl)
+    else:
+        _save_deadlines_to_disk()
+    log.info("Deadline created: %s ('%s') for doc %s", dl_id, dl["title"], body.doc_id)
+    return dl
+
+
+@app.patch("/api/deadlines/{dl_id}")
+async def update_deadline(dl_id: str, body: UpdateDeadlineRequest, request: Request):
+    """Patch a deadline: update status, date, snooze, or title."""
+    dl = deadlines_db.get(dl_id)
+    if not dl:
+        raise HTTPException(status_code=404, detail="Deadline not found.")
+    owner = _token_to_user(request) or ""
+    if owner and dl.get("owner") != owner:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    if body.status      is not None: dl["status"]       = body.status
+    if body.snoozed_until is not None: dl["snoozed_until"] = body.snoozed_until
+    if body.title       is not None: dl["title"]        = body.title.strip()
+    if body.date        is not None: dl["date"]         = body.date
+    if body.description is not None: dl["description"]  = body.description
+    if _mongo_db is not None:
+        await _mongo_save_deadline(dl)
+    else:
+        _save_deadlines_to_disk()
+    return dl
+
+
+@app.delete("/api/deadlines/{dl_id}")
+async def delete_deadline(dl_id: str, request: Request):
+    """Hard-delete a deadline."""
+    dl = deadlines_db.get(dl_id)
+    if not dl:
+        raise HTTPException(status_code=404, detail="Deadline not found.")
+    owner = _token_to_user(request) or ""
+    if owner and dl.get("owner") != owner:
+        raise HTTPException(status_code=403, detail="Not authorized.")
+    del deadlines_db[dl_id]
+    if _mongo_db is not None:
+        await _mongo_delete_deadline(dl_id)
+    else:
+        _save_deadlines_to_disk()
+    log.info("Deadline deleted: %s", dl_id)
+    return {"status": "deleted"}
 
 
 @app.get("/api/health")
