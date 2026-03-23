@@ -624,6 +624,40 @@
   .alert-item-title { font-size: 12px; font-weight: 600; color: var(--text); }
   .alert-item-case  { font-size: 11px; color: var(--text-muted); margin: 1px 0; }
 
+  /* ── Sidebar Add Deadline form ────────────────────────────────────────── */
+  .sidebar-add-dl {
+    margin: 8px 8px 4px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.1); overflow: hidden;
+  }
+  .sidebar-add-dl-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 12px; background: rgba(59,130,246,.15);
+    cursor: pointer; user-select: none;
+    color: #93c5fd; font-size: 13px; font-weight: 600;
+    transition: background .15s;
+  }
+  .sidebar-add-dl-header:hover { background: rgba(59,130,246,.25); }
+  .sidebar-add-dl-body {
+    padding: 10px; background: rgba(0,0,0,.2);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .sidebar-add-dl-body.hidden { display: none; }
+  .sdl-input {
+    width: 100%; padding: 6px 8px;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 6px; color: #fff; font-size: 12px; outline: none;
+    transition: border .15s;
+  }
+  .sdl-input::placeholder { color: #64748b; }
+  .sdl-input:focus { border-color: var(--blue); }
+  .sdl-input option { background: #1e293b; color: #fff; }
+  .sdl-add-btn {
+    width: 100%; padding: 7px; background: var(--blue); color: #fff;
+    border: none; border-radius: 6px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: background .15s;
+  }
+  .sdl-add-btn:hover { background: var(--blue-dark); }
+
   /* ── Deadline Dashboard overlay ───────────────────────────────────────── */
   .dash-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,.5);
@@ -815,6 +849,28 @@
       </button>
       <button class="btn-library" onclick="openLibrary()">📂 My Documents</button>
       <button class="btn-deadlines" onclick="openDashboard()">📅 Deadline Dashboard</button>
+      <!-- Add Deadline (sidebar) -->
+      <div class="sidebar-add-dl" id="sidebarAddDl">
+        <div class="sidebar-add-dl-header" onclick="toggleSidebarAddDl()">
+          <span>➕ Add Deadline</span>
+          <span id="sidebarAddDlArrow">▸</span>
+        </div>
+        <div class="sidebar-add-dl-body hidden" id="sidebarAddDlBody">
+          <select class="sdl-input" id="sdlDocId"></select>
+          <input  class="sdl-input" id="sdlTitle" type="text" placeholder="Deadline title…"/>
+          <input  class="sdl-input" id="sdlDate"  type="date"/>
+          <select class="sdl-input" id="sdlType">
+            <option value="filing_window">Filing Window</option>
+            <option value="court_date">Court Date</option>
+            <option value="response_deadline">Response Deadline</option>
+            <option value="contract_expiry">Contract Expiry</option>
+            <option value="payment_due">Payment Due</option>
+            <option value="regulatory_deadline">Regulatory Deadline</option>
+            <option value="other">Other</option>
+          </select>
+          <button class="sdl-add-btn" onclick="sidebarAddDeadline()">Add Deadline</button>
+        </div>
+      </div>
     </div>
 
     <div class="sidebar-search">
@@ -1073,24 +1129,6 @@
     </div>
     <div class="dash-result-count" id="dashResultCount"></div>
     <div class="dash-body" id="dashBody"></div>
-    <div class="dash-quick-add">
-      <div class="dash-qa-title">Quick Add Deadline</div>
-      <div class="dash-qa-row">
-        <select class="dash-qa-input" id="qaDocId" style="flex:2"></select>
-        <input  class="dash-qa-input" id="qaTitle" type="text" placeholder="Deadline title…" style="flex:3"/>
-        <input  class="dash-qa-input" id="qaDate"  type="date" style="flex:1.5"/>
-        <select class="dash-qa-input" id="qaType"  style="flex:2">
-          <option value="filing_window">Filing Window</option>
-          <option value="court_date">Court Date</option>
-          <option value="response_deadline">Response Deadline</option>
-          <option value="contract_expiry">Contract Expiry</option>
-          <option value="payment_due">Payment Due</option>
-          <option value="regulatory_deadline">Regulatory Deadline</option>
-          <option value="other">Other</option>
-        </select>
-        <button class="btn btn-primary" style="font-size:12px;white-space:nowrap" onclick="quickAddDeadline()">Add</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1274,6 +1312,7 @@ async function loadDocs() {
     const r = await fetch(`${API}/api/documents`, { headers: authHeaders() });
     allDocs  = await r.json();
     renderDocList();
+    populateSidebarDocSelect();
     if (allDocs.length && !currentDocId) selectDoc(allDocs[0].id);
   } catch { }
 }
@@ -2349,8 +2388,6 @@ async function openDashboard() {
   document.getElementById('dashSearch').value = '';
   document.getElementById('dashTypeFilter').value   = '';
   document.getElementById('dashStatusFilter').value = 'active';
-  // populate case dropdown
-  populateQaDocSelect();
   // load all deadlines for this user
   try {
     const r = await fetch(`${API}/api/deadlines`, { headers: authHeaders() });
@@ -2367,10 +2404,52 @@ function closeDashboardOuter(e) {
   if (e.target === document.getElementById('dashOverlay')) closeDashboard();
 }
 
-function populateQaDocSelect() {
-  const sel = document.getElementById('qaDocId');
+function populateSidebarDocSelect() {
+  const sel = document.getElementById('sdlDocId');
+  if (!sel) return;
+  const current = sel.value;
   sel.innerHTML = '<option value="">— Select case —</option>' +
-    allDocs.map(d => `<option value="${d.id}">${esc(d.filename)}</option>`).join('');
+    allDocs.map(d => `<option value="${d.id}" ${d.id === current ? 'selected' : ''}>${esc(d.filename)}</option>`).join('');
+  // pre-select currently open doc
+  if (!current && currentDocId) sel.value = currentDocId;
+}
+
+function toggleSidebarAddDl() {
+  const body  = document.getElementById('sidebarAddDlBody');
+  const arrow = document.getElementById('sidebarAddDlArrow');
+  const open  = !body.classList.contains('hidden');
+  body.classList.toggle('hidden', open);
+  arrow.textContent = open ? '▸' : '▾';
+  if (!open) populateSidebarDocSelect();
+}
+
+async function sidebarAddDeadline() {
+  const docId = document.getElementById('sdlDocId').value;
+  const title = document.getElementById('sdlTitle').value.trim();
+  const d     = document.getElementById('sdlDate').value;
+  const type  = document.getElementById('sdlType').value;
+  if (!docId) { showToast('Select a case first', 'error'); return; }
+  if (!title) { showToast('Title is required', 'error');  return; }
+  try {
+    const r = await fetch(`${API}/api/deadlines`, {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ doc_id: docId, title, date: d || null, type }),
+    });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
+    const dl = await r.json();
+    allDeadlines.push(dl);
+    if (docId === currentDocId) { docDeadlines.push(dl); renderDeadlineTab(); }
+    document.getElementById('sdlTitle').value = '';
+    document.getElementById('sdlDate').value  = '';
+    showToast('✓ Deadline added', 'success');
+    loadAlerts();
+  } catch (e) { showToast('Failed: ' + e.message, 'error'); }
+}
+
+function populateQaDocSelect() {
+  // kept for dashboard compat — dashboard no longer has quick-add, but
+  // keeping the function avoids errors if called elsewhere
 }
 
 function renderDashboard() {
