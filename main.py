@@ -17,7 +17,7 @@ from typing import AsyncGenerator
 
 import anthropic
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
@@ -884,7 +884,11 @@ async def me(request: Request):
 
 
 @app.post("/api/upload")
-async def upload_document(request: Request, file: UploadFile = File(...)):
+async def upload_document(
+    request: Request,
+    file: UploadFile = File(...),
+    case_number: str = Form(None),
+):
     """Upload a legal document, extract text, and auto-analyze with Claude."""
     log.info("Upload request received: filename='%s'", file.filename)
     try:
@@ -938,6 +942,10 @@ async def upload_document(request: Request, file: UploadFile = File(...)):
         analysis.get("risk_level", "Unknown"),
         len(analysis.get("clauses", [])),
     )
+    # User-supplied case number overrides whatever Claude extracted
+    if case_number and case_number.strip():
+        analysis["case_number"] = case_number.strip()
+
     doc_id = str(uuid.uuid4())
     owner = _token_to_user(request) or ""
     uploaded_at = datetime.now().isoformat()

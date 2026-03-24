@@ -538,8 +538,8 @@
   }
   .btn-logout:hover { border-color: var(--red); color: var(--red); }
 
-  /* ── Deadline Dashboard sidebar button ────────────────────────────────── */
-  .btn-deadlines {
+  /* ── Deadline nav buttons (sidebar) ───────────────────────────────────── */
+  .btn-nav-dl {
     width: 100%; margin-top: 6px; padding: 8px 14px;
     background: rgba(255,255,255,.06); color: #94a3b8;
     border: 1px solid rgba(255,255,255,.1); border-radius: 8px;
@@ -547,7 +547,8 @@
     display: flex; align-items: center; justify-content: center; gap: 6px;
     transition: all .15s;
   }
-  .btn-deadlines:hover { background: rgba(59,130,246,.2); color: #fff; border-color: var(--blue); }
+  .btn-nav-dl:hover  { background: rgba(59,130,246,.2); color: #fff; border-color: var(--blue); }
+  .btn-nav-dl.active { background: rgba(59,130,246,.3); color: #fff; border-color: var(--blue); }
 
   /* ── Alert bell ────────────────────────────────────────────────────────── */
   .alert-bell {
@@ -624,17 +625,7 @@
   .alert-item-title { font-size: 12px; font-weight: 600; color: var(--text); }
   .alert-item-case  { font-size: 11px; color: var(--text-muted); margin: 1px 0; }
 
-  /* ── Sidebar Add Deadline nav link ────────────────────────────────────── */
-  .btn-add-deadline {
-    width: 100%; margin-top: 6px; padding: 9px 14px;
-    background: rgba(16,185,129,.15); color: #6ee7b7;
-    border: 1px solid rgba(16,185,129,.25); border-radius: 8px;
-    cursor: pointer; font-size: 13px; font-weight: 600;
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    transition: all .15s;
-  }
-  .btn-add-deadline:hover  { background: rgba(16,185,129,.28); color: #fff; }
-  .btn-add-deadline.active { background: rgba(16,185,129,.35); color: #fff; border-color: #10b981; }
+  /* btn-add-deadline reuses btn-nav-dl — no extra styles needed */
 
   /* ── Deadline Management view (right panel) ────────────────────────────── */
   .dl-view { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 20px; }
@@ -947,8 +938,8 @@
         <span style="font-size:16px">+</span> Upload Document
       </button>
       <button class="btn-library" onclick="openLibrary()">📂 My Documents</button>
-      <button class="btn-deadlines" onclick="openDashboard()">📅 Deadline Dashboard</button>
-      <button class="btn-add-deadline" id="btnAddDeadline" onclick="openDeadlineView()">➕ Add Deadline</button>
+      <button class="btn-nav-dl" id="btnManageDeadlines" onclick="openManageDeadlines()">📋 Manage Deadlines</button>
+      <button class="btn-nav-dl" id="btnAddDeadline" onclick="openAddDeadlinePanel()">➕ Add Deadline</button>
     </div>
 
     <div class="sidebar-search">
@@ -993,14 +984,13 @@
         <button class="empty-btn" onclick="openUpload()">Upload Document</button>
       </div>
 
-      <!-- Deadline Management view -->
-      <div id="deadlineView" style="display:none; flex:1; overflow:hidden; flex-direction:column;">
+      <!-- ── Manage Deadlines panel ─────────────────────────────────────── -->
+      <div id="manageDeadlinesView" style="display:none; flex:1; overflow:hidden; flex-direction:column;">
         <div class="dl-view">
 
-          <!-- Header -->
           <div>
-            <div class="dl-view-title">➕ Add &amp; Manage Deadlines</div>
-            <div class="dl-view-sub">Search cases, update hearing dates and track date history</div>
+            <div class="dl-view-title">📋 Manage Deadlines</div>
+            <div class="dl-view-sub">Search cases, update hearing dates and track full date history</div>
           </div>
 
           <!-- Search card -->
@@ -1010,15 +1000,19 @@
                 <label class="dl-search-label">Search</label>
                 <input class="dl-search-input" id="dlvSearch" type="text"
                   placeholder="Petitioner, respondent, case number, deadline…"
-                  oninput="renderDlViewResults()"/>
+                  onkeydown="if(event.key==='Enter')renderDlViewResults()"/>
               </div>
               <div class="dl-search-group">
                 <label class="dl-search-label">Date from</label>
-                <input class="dl-search-input" id="dlvDateFrom" type="date" onchange="renderDlViewResults()"/>
+                <input class="dl-search-input" id="dlvDateFrom" type="date"/>
               </div>
               <div class="dl-search-group">
                 <label class="dl-search-label">Date to</label>
-                <input class="dl-search-input" id="dlvDateTo" type="date" onchange="renderDlViewResults()"/>
+                <input class="dl-search-input" id="dlvDateTo" type="date"/>
+              </div>
+              <div class="dl-search-group" style="flex:0">
+                <label class="dl-search-label">&nbsp;</label>
+                <button class="btn btn-primary" onclick="renderDlViewResults()" style="font-size:12px;padding:8px 16px">Search</button>
               </div>
               <div class="dl-search-group" style="flex:0">
                 <label class="dl-search-label">&nbsp;</label>
@@ -1046,15 +1040,25 @@
                   </tr>
                 </thead>
                 <tbody id="dlvTableBody">
-                  <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Search above to find deadlines</td></tr>
+                  <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Enter search criteria above and click Search</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          <!-- Add new deadline form -->
-          <div class="dl-add-card">
-            <div class="dl-add-title">➕ Add New Deadline</div>
+        </div>
+      </div>
+
+      <!-- ── Add Deadline panel ──────────────────────────────────────────── -->
+      <div id="addDeadlineView" style="display:none; flex:1; overflow:hidden; flex-direction:column;">
+        <div class="dl-view">
+
+          <div>
+            <div class="dl-view-title">➕ Add Deadline</div>
+            <div class="dl-view-sub">Manually add a court date, filing deadline or any key date for a case</div>
+          </div>
+
+          <div class="dl-add-card" style="max-width:600px">
             <div class="dl-add-grid">
               <div class="dl-add-field dl-add-full">
                 <label class="dl-add-label">Case / Document *</label>
@@ -1085,7 +1089,7 @@
                 <input class="dl-add-input" id="dlvAddDesc" type="text" placeholder="Optional notes"/>
               </div>
             </div>
-            <button class="btn btn-primary" style="margin-top:12px" onclick="dlvAddDeadline()">Add Deadline</button>
+            <button class="btn btn-primary" style="margin-top:16px;padding:10px 28px" onclick="dlvAddDeadline()">Add Deadline</button>
           </div>
 
         </div>
@@ -1238,6 +1242,13 @@
     </div>
     <input type="file" id="fileInput" style="display:none" accept=".pdf,.docx,.doc,.txt,.md"
            onchange="handleFileSelect(event)" />
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:5px">
+        Case Number <span style="font-weight:400">(optional — leave blank to auto-extract)</span>
+      </label>
+      <input id="uploadCaseNumber" type="text" placeholder="e.g. 2024/HC/001"
+        style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:7px;font-size:13px;outline:none"/>
+    </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeUpload()">Cancel</button>
       <button class="btn btn-primary" id="uploadBtn" onclick="uploadFile()" disabled>Analyze Document</button>
@@ -1564,9 +1575,7 @@ async function selectDoc(id) {
 
 function renderDocView() {
   const a = currentDoc.analysis;
-  document.getElementById('emptyState').style.display   = 'none';
-  document.getElementById('deadlineView').style.display = 'none';
-  document.getElementById('btnAddDeadline')?.classList.remove('active');
+  _hideAllMainPanels();
   const dv = document.getElementById('docView');
   dv.style.display = 'flex';
 
@@ -2222,6 +2231,7 @@ function openUpload() {
   document.getElementById('dropText').textContent = 'Click or drag & drop your file here';
   document.getElementById('dropSub').textContent  = 'PDF, DOCX, DOC, TXT';
   document.getElementById('uploadBtn').disabled   = true;
+  document.getElementById('uploadCaseNumber').value = '';
   document.getElementById('uploadOverlay').classList.add('visible');
 }
 
@@ -2264,6 +2274,8 @@ async function uploadFile() {
 
   const fd = new FormData();
   fd.append('file', fileToUpload);
+  const caseNumVal = document.getElementById('uploadCaseNumber')?.value.trim();
+  if (caseNumVal) fd.append('case_number', caseNumVal);
 
   let doc = null;
 
@@ -2682,15 +2694,28 @@ function populateQaDocSelect()      { /* no-op — dashboard no longer has quick
    DEADLINE MANAGEMENT VIEW (right panel, opened from sidebar nav link)
    ══════════════════════════════════════════════════════════════════════════ */
 
-function openDeadlineView() {
-  document.getElementById('emptyState').style.display  = 'none';
-  document.getElementById('docView').style.display     = 'none';
-  document.getElementById('deadlineView').style.display = 'flex';
-  document.getElementById('btnAddDeadline')?.classList.add('active');
-  // populate add-form case selector
-  _populateDlvDocSelect();
-  // render all deadlines by default
+function _hideAllMainPanels() {
+  document.getElementById('emptyState').style.display         = 'none';
+  document.getElementById('docView').style.display            = 'none';
+  document.getElementById('manageDeadlinesView').style.display = 'none';
+  document.getElementById('addDeadlineView').style.display    = 'none';
+  document.getElementById('btnManageDeadlines')?.classList.remove('active');
+  document.getElementById('btnAddDeadline')?.classList.remove('active');
+}
+
+function openManageDeadlines() {
+  _hideAllMainPanels();
+  document.getElementById('manageDeadlinesView').style.display = 'flex';
+  document.getElementById('btnManageDeadlines')?.classList.add('active');
+  // show all deadlines by default on first open
   renderDlViewResults();
+}
+
+function openAddDeadlinePanel() {
+  _hideAllMainPanels();
+  document.getElementById('addDeadlineView').style.display = 'flex';
+  document.getElementById('btnAddDeadline')?.classList.add('active');
+  _populateDlvDocSelect();
 }
 
 function _populateDlvDocSelect() {
@@ -2705,7 +2730,9 @@ function clearDlViewSearch() {
   document.getElementById('dlvSearch').value   = '';
   document.getElementById('dlvDateFrom').value = '';
   document.getElementById('dlvDateTo').value   = '';
-  renderDlViewResults();
+  document.getElementById('dlvTableBody').innerHTML =
+    '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Enter search criteria above and click Search</td></tr>';
+  document.getElementById('dlvCount').textContent = '';
 }
 
 function renderDlViewResults() {
@@ -2890,8 +2917,9 @@ async function dlvAddDeadline() {
     document.getElementById('dlvAddDate').value  = '';
     document.getElementById('dlvAddDesc').value  = '';
     showToast('✓ Deadline added', 'success');
-    renderDlViewResults();
     loadAlerts();
+    // Switch to Manage panel to show the newly added deadline
+    openManageDeadlines();
   } catch (e) { showToast('Failed: ' + e.message, 'error'); }
 }
 
