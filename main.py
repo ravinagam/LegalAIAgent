@@ -791,6 +791,10 @@ class UpdateDocRequest(BaseModel):
     reanalyze: bool = False
 
 
+class PatchDocRequest(BaseModel):
+    case_number: str | None = None
+
+
 class ChatRequest(BaseModel):
     message: str
 
@@ -1168,6 +1172,25 @@ async def update_document(doc_id: str, body: UpdateDocRequest):
         "chat_history": doc["chat_history"],
         "uploaded_at": doc.get("uploaded_at"),
     }
+
+
+@app.patch("/api/documents/{doc_id}")
+async def patch_document(doc_id: str, body: PatchDocRequest, request: Request):
+    """Partially update document metadata (e.g. case_number) without reanalysis."""
+    owner = _token_to_user(request) or ""
+    doc = documents.get(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    if doc.get("owner", "") != owner:
+        raise HTTPException(status_code=403, detail="Forbidden.")
+    if body.case_number is not None:
+        doc.setdefault("analysis", {})["case_number"] = body.case_number or None
+    if _mongo_db is not None:
+        await _mongo_save_doc(doc)
+    else:
+        _save_doc(doc)
+    log.info("Document %s case_number updated to %r", doc_id, doc["analysis"].get("case_number"))
+    return {"id": doc_id, "case_number": doc["analysis"].get("case_number")}
 
 
 @app.delete("/api/documents/{doc_id}")

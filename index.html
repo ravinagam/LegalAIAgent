@@ -671,6 +671,14 @@
   .dlm-table tr.dlm-overdue td { background: #fff5f5; }
   .dlm-table tr.dlm-soon    td { background: #fffbeb; }
   .dlm-case   { font-size: 12px; font-weight: 700; color: var(--blue); }
+  .case-edit-btn { background: none; border: none; cursor: pointer; font-size: 11px;
+    color: var(--text-muted); padding: 0 2px; vertical-align: middle; }
+  .case-edit-btn:hover { color: var(--blue); }
+  .case-inline-input { font-size: 12px; border: 1px solid var(--blue); border-radius: 4px;
+    padding: 2px 5px; width: 110px; outline: none; }
+  .meta-case-row { display: flex; align-items: center; gap: 6px; }
+  .meta-case-input { font-size: 13px; border: 1px solid var(--blue); border-radius: 5px;
+    padding: 3px 8px; width: 180px; outline: none; }
   .dlm-party  { font-size: 13px; color: var(--text); }
   .dlm-plabel { font-size: 10px; font-weight: 600; color: var(--text-muted);
     text-transform: uppercase; letter-spacing: .3px; }
@@ -828,6 +836,7 @@
   .dash-table tbody tr.row-soon    td { background: #fffbeb; }
   .dash-table tbody tr.row-dismissed td { opacity: .45; }
   .dt-case   { font-size: 12px; font-weight: 700; color: var(--blue); white-space: nowrap; }
+  .dt-case-empty { font-size: 12px; color: var(--text-muted); font-style: italic; }
   .dt-party  { font-size: 12px; color: var(--text); max-width: 130px; }
   .dt-party-label { font-size: 10px; font-weight: 600; text-transform: uppercase;
     letter-spacing: .3px; color: var(--text-muted); margin-bottom: 1px; }
@@ -1611,7 +1620,11 @@ function renderOverview(a) {
     <div class="meta-item">
       <div class="meta-label">${m.label}</div>
       <div class="meta-value">${esc(m.value)}</div>
-    </div>`).join('');
+    </div>`).join('') + `
+    <div class="meta-item">
+      <div class="meta-label">Case Number</div>
+      <div class="meta-value" id="metaCaseNumValue">${_caseNumMetaHtml(a.case_number)}</div>
+    </div>`;
 
   // Summary
   document.getElementById('summaryText').textContent = a.summary || 'No summary available.';
@@ -1625,6 +1638,93 @@ function renderOverview(a) {
         <span class="obl-text">${esc(o.obligation || '')}</span>
       </li>`).join('')
     : '<li style="color:var(--text-muted);font-size:13px;padding:8px 0">No key obligations extracted.</li>';
+}
+
+/* ── Case Number inline editing ─────────────────────────────────────────── */
+async function patchDocCaseNumber(docId, val) {
+  try {
+    const r = await fetch(`${API}/api/documents/${docId}`, {
+      method: 'PATCH',
+      headers: authHeaders({'Content-Type': 'application/json'}),
+      body: JSON.stringify({ case_number: val || null }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    const doc = allDocs.find(d => d.id === docId);
+    if (doc) doc.case_number = data.case_number;
+    showToast('Case number saved', 'success');
+    return data.case_number;
+  } catch (e) { showToast('Failed: ' + e.message, 'error'); return undefined; }
+}
+
+// Render helper for the Overview meta-item
+function _caseNumMetaHtml(val) {
+  if (val) {
+    return `<span class="meta-case-row">${esc(val)}<button class="case-edit-btn" onclick="startCaseNumEdit()" title="Edit">✏</button></span>`;
+  }
+  return `<span class="meta-case-row" style="color:var(--text-muted);font-style:italic">Not extracted
+    <button class="case-edit-btn" onclick="startCaseNumEdit()" title="Add case number">+ Add</button></span>`;
+}
+
+function startCaseNumEdit() {
+  const doc = allDocs.find(d => d.id === currentDocId);
+  const cur = doc?.case_number || '';
+  document.getElementById('metaCaseNumValue').innerHTML =
+    `<span class="meta-case-row">
+       <input id="caseNumMetaInput" class="meta-case-input" value="${esc(cur)}" placeholder="e.g. 2024/HC/001"
+         onkeydown="if(event.key==='Enter')saveCaseNumMeta();if(event.key==='Escape')cancelCaseNumMeta()"/>
+       <button class="btn-xs btn-primary" onclick="saveCaseNumMeta()">Save</button>
+       <button class="btn-xs" onclick="cancelCaseNumMeta()">✕</button>
+     </span>`;
+  document.getElementById('caseNumMetaInput')?.focus();
+}
+
+async function saveCaseNumMeta() {
+  const val = document.getElementById('caseNumMetaInput')?.value.trim() || null;
+  const saved = await patchDocCaseNumber(currentDocId, val);
+  if (saved !== undefined) {
+    document.getElementById('metaCaseNumValue').innerHTML = _caseNumMetaHtml(saved);
+  }
+}
+
+function cancelCaseNumMeta() {
+  const doc = allDocs.find(d => d.id === currentDocId);
+  document.getElementById('metaCaseNumValue').innerHTML = _caseNumMetaHtml(doc?.case_number || null);
+}
+
+// Render helper for table cells (deadline view + dashboard)
+function _caseNumTableHtml(docId, val, ctx) {
+  if (val) {
+    return `<span class="dt-case">${esc(val)}<button class="case-edit-btn" onclick="inlineCaseEdit(event,'${docId}','${ctx}')" title="Edit">✏</button></span>`;
+  }
+  return `<span class="dt-case-empty">—<button class="case-edit-btn" onclick="inlineCaseEdit(event,'${docId}','${ctx}')" title="Enter case number">+ Add</button></span>`;
+}
+
+function inlineCaseEdit(evt, docId, ctx) {
+  const cell = evt.target.closest('td');
+  const doc  = allDocs.find(d => d.id === docId);
+  const cur  = doc?.case_number || '';
+  cell.innerHTML =
+    `<span style="display:flex;align-items:center;gap:4px">
+       <input class="case-inline-input" id="cni-${docId}" value="${esc(cur)}" placeholder="Case number"
+         onkeydown="if(event.key==='Enter')saveCaseEdit('${docId}','${ctx}');if(event.key==='Escape')cancelCaseEdit('${docId}','${ctx}')"/>
+       <button class="btn-xs btn-primary" onclick="saveCaseEdit('${docId}','${ctx}')">✓</button>
+     </span>`;
+  document.getElementById(`cni-${docId}`)?.focus();
+}
+
+async function saveCaseEdit(docId, ctx) {
+  const val = document.getElementById(`cni-${docId}`)?.value.trim() || null;
+  await patchDocCaseNumber(docId, val);
+  if (ctx === 'dash') renderDashboard();
+  else if (ctx === 'view') renderDlViewResults();
+}
+
+function cancelCaseEdit(docId, ctx) {
+  const doc = allDocs.find(d => d.id === docId);
+  const cellId = ctx === 'dash' ? `case-cell-dash-${docId}` : `case-cell-view-${docId}`;
+  const cell = document.getElementById(cellId);
+  if (cell) cell.innerHTML = _caseNumTableHtml(docId, doc?.case_number || null, ctx);
 }
 
 /* ── Clauses ────────────────────────────────────────────────────────────── */
@@ -2652,7 +2752,7 @@ function renderDlViewResults() {
     const parties   = doc?.parties || [];
     const petitioner = parties[0] || '—';
     const respondent = parties[1] || '—';
-    const caseNum   = doc?.case_number || '—';
+    const caseNum   = doc?.case_number || null;
     const daysLeft  = dl.daysLeft;
     const rowCls    = daysLeft !== null && daysLeft < 0 ? 'dlm-overdue'
       : daysLeft !== null && daysLeft <= 7 ? 'dlm-soon' : '';
@@ -2662,9 +2762,10 @@ function renderDlViewResults() {
       : daysLeft <= 7  ? `<span style="color:var(--amber);font-size:11px;font-weight:600">${daysLeft}d left</span>`
       :                  `<span style="color:var(--green);font-size:11px;font-weight:600">${daysLeft}d</span>`;
     const histCount = (dl.date_history || []).length;
+    const caseCell  = doc ? _caseNumTableHtml(doc.id, caseNum, 'view') : '<span class="dt-case-empty">—</span>';
     return `
     <tr class="${rowCls}" id="dlv-row-${dl.id}">
-      <td><span class="dlm-case">${esc(caseNum)}</span></td>
+      <td id="case-cell-view-${doc?.id}">${caseCell}</td>
       <td>
         <div class="dlm-plabel">Petitioner</div>
         <div class="dlm-party">${esc(petitioner)}</div>
@@ -2861,7 +2962,7 @@ function renderDashboard() {
           const parties   = doc?.parties || [];
           const petitioner = parties[0] || '—';
           const respondent = parties[1] || (parties.length > 1 ? parties[1] : '—');
-          const caseNum   = doc?.case_number || '—';
+          const caseNum   = doc?.case_number || null;
           const daysLeft  = dl.daysLeft;
           const dismissed = dl.status === 'dismissed';
           const rowCls    = dismissed ? 'row-dismissed'
@@ -2876,9 +2977,10 @@ function renderDashboard() {
           const dateDisplay = dl.date
             ? `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" title="Click to edit">${dlFormatDate(dl.date)}</span>`
             : `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" style="color:var(--text-muted)" title="Click to set">Set date…</span>`;
+          const dashCaseCell = doc ? _caseNumTableHtml(doc.id, caseNum, 'dash') : '<span class="dt-case-empty">—</span>';
           return `
           <tr class="${rowCls}" id="dash-dl-${dl.id}">
-            <td><span class="dt-case">${esc(caseNum)}</span></td>
+            <td id="case-cell-dash-${doc?.id}">${dashCaseCell}</td>
             <td>
               <div class="dt-party-label">Petitioner</div>
               <div class="dt-party">${esc(petitioner)}</div>
