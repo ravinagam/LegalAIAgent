@@ -279,7 +279,7 @@ def _load_deadlines_from_disk() -> None:
 
 def _create_deadlines_from_analysis(doc_id: str, owner: str, analysis: dict) -> None:
     """Parse the deadlines array from a Claude analysis and store in deadlines_db."""
-    for dl_raw in analysis.get("deadlines", []):
+    for dl_raw in (analysis.get("deadlines") or []):
         if not dl_raw.get("date") and not dl_raw.get("date_approximate"):
             continue
         dl_id = str(uuid.uuid4())
@@ -294,6 +294,7 @@ def _create_deadlines_from_analysis(doc_id: str, owner: str, analysis: dict) -> 
             "type": dl_raw.get("type") or "other",
             "description": dl_raw.get("description") or "",
             "source_clause": dl_raw.get("source_clause"),
+            "source": "analysis",
             "status": "active",
             "snoozed_until": None,
             "created_at": datetime.now().isoformat(),
@@ -733,7 +734,7 @@ async def stream_chat_response(
 
     analysis = doc.get("analysis", {})
     doc_type = analysis.get("document_type", "Unknown")
-    parties  = ", ".join(analysis.get("parties", []))
+    parties  = ", ".join(analysis.get("parties") or [])
 
     # Build system prompt by concatenation — NOT .format() — to avoid KeyError on { } in docs
     system_prompt = (
@@ -940,7 +941,7 @@ async def upload_document(
         "Analysis complete: doc_type='%s', risk_level='%s', clauses=%d",
         analysis.get("document_type", "Unknown"),
         analysis.get("risk_level", "Unknown"),
-        len(analysis.get("clauses", [])),
+        len(analysis.get("clauses") or []),
     )
     # User-supplied case number overrides whatever Claude extracted
     if case_number and case_number.strip():
@@ -1269,6 +1270,8 @@ async def get_deadline_alerts(request: Request, days_ahead: int = 14):
             continue
         if dl.get("status") == "dismissed":
             continue
+        if dl.get("source") == "analysis":
+            continue
         if not dl.get("date"):
             continue
         try:
@@ -1393,6 +1396,7 @@ async def create_deadline(request: Request, body: CreateDeadlineRequest):
         "date": body.date, "date_approximate": body.date_approximate,
         "type": body.type, "description": body.description,
         "source_clause": body.source_clause,
+        "source": "manual",
         "status": "active", "snoozed_until": None,
         "created_at": datetime.now().isoformat(),
         "date_history": [

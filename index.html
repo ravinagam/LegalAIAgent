@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Legal AI Agent</title>
+<title>Legal AI Assistant</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -628,7 +628,7 @@
   /* btn-add-deadline reuses btn-nav-dl — no extra styles needed */
 
   /* ── Deadline Management view (right panel) ────────────────────────────── */
-  .dl-view { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 20px; }
+  .dl-view { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 20px; }
   .dl-view-header { display: flex; align-items: center; justify-content: space-between;
     padding-bottom: 4px; }
   .dl-view-title { font-size: 18px; font-weight: 700; color: var(--text); }
@@ -643,9 +643,10 @@
   .dl-search-input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px;
     font-size: 13px; outline: none; background: var(--card); }
   .dl-search-input:focus { border-color: var(--blue); }
-  /* Results card */
+  /* Results card — fills remaining height and scrolls */
   .dl-results-card { background: var(--card); border-radius: var(--radius);
-    box-shadow: var(--shadow); overflow: hidden; }
+    box-shadow: var(--shadow); overflow: hidden;
+    flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .dl-results-header { display: flex; align-items: center; justify-content: space-between;
     padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .dl-results-title  { font-size: 14px; font-weight: 600; color: var(--text); }
@@ -656,6 +657,7 @@
     text-align: left; padding: 9px 14px; font-size: 11px; font-weight: 600;
     text-transform: uppercase; letter-spacing: .4px; color: var(--text-muted);
     border-bottom: 2px solid var(--border); background: #f8fafc; white-space: nowrap;
+    position: sticky; top: 0; z-index: 1;
   }
   .dlm-table td   { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
   .dlm-table tr:hover td { background: #f8fafc; }
@@ -856,8 +858,7 @@
   <div class="auth-card">
     <div class="auth-logo">
       <div class="auth-logo-icon">⚖</div>
-      <div class="auth-logo-text">Legal AI Agent</div>
-      <div class="auth-logo-sub">Powered by Claude</div>
+      <div class="auth-logo-text">Legal AI Assistant</div>
     </div>
     <div class="auth-tabs">
       <div class="auth-tab active" id="authTabLogin" onclick="switchAuthTab('login')">Sign In</div>
@@ -930,8 +931,7 @@
       <div class="logo">
         <div class="logo-icon">⚖</div>
         <div>
-          <div class="logo-text">Legal AI Agent</div>
-          <div class="logo-sub">Powered by Claude</div>
+          <div class="logo-text">Legal AI Assistant</div>
         </div>
       </div>
       <button class="btn-upload" onclick="openUpload()">
@@ -940,6 +940,7 @@
       <button class="btn-library" onclick="openLibrary()">📂 My Documents</button>
       <button class="btn-nav-dl" id="btnManageDeadlines" onclick="openManageDeadlines()">📋 Manage Deadlines</button>
       <button class="btn-nav-dl" id="btnAddDeadline" onclick="openAddDeadlinePanel()">➕ Add Deadline</button>
+      <button class="btn-nav-dl" id="btnCaseList" onclick="openCaseList()">📁 Case List</button>
     </div>
 
     <div class="sidebar-search">
@@ -956,10 +957,7 @@
 
     <!-- Topbar -->
     <div class="topbar" id="topbar">
-      <div>
-        <div class="topbar-title" id="topbarTitle">Legal AI Agent</div>
-        <div class="topbar-meta" id="topbarMeta">Upload a document to get started</div>
-      </div>
+      <div class="topbar-title">Legal AI Assistant</div>
       <div style="display:flex;align-items:center;gap:10px;">
         <button class="alert-bell" id="alertBell" onclick="toggleAlertsPanel()" title="Upcoming deadlines" style="display:none">
           🔔<span class="alert-count" id="alertCount" style="display:none">0</span>
@@ -969,7 +967,6 @@
           <span class="user-name" id="userName"></span>
           <button class="btn-logout" onclick="doLogout()">Logout</button>
         </div>
-        <div class="topbar-actions" id="topbarActions"></div>
       </div>
     </div>
 
@@ -1027,20 +1024,23 @@
               <span class="dl-results-title">Cases &amp; Deadlines</span>
               <span class="dl-results-count" id="dlvCount"></span>
             </div>
-            <div style="overflow-x:auto">
+            <div style="flex:1; overflow:auto; min-height:0;">
               <table class="dlm-table">
                 <thead>
                   <tr>
                     <th>Case #</th>
                     <th>Petitioner</th>
                     <th>Respondent</th>
-                    <th>Deadline</th>
+                    <th>Deadline Title</th>
+                    <th>Type</th>
+                    <th>Notes</th>
                     <th class="dlm-date-cell">Hearing / Due Date</th>
+                    <th>Days Left</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody id="dlvTableBody">
-                  <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Enter search criteria above and click Search</td></tr>
+                  <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">Enter search criteria above and click Search</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1095,8 +1095,49 @@
         </div>
       </div>
 
+      <!-- ── Case List panel ─────────────────────────────────────────────── -->
+      <div id="caseListView" style="display:none; flex:1; overflow:hidden; flex-direction:column;">
+        <div class="dl-view">
+
+          <div>
+            <div class="dl-view-title">📁 Case List</div>
+            <div class="dl-view-sub">All uploaded cases and their details</div>
+          </div>
+
+          <div class="dl-results-card">
+            <div id="caseListCount" style="font-size:12px;color:var(--text-muted);margin-bottom:8px"></div>
+            <div style="flex:1;overflow:auto;min-height:0">
+              <table class="dlm-table" style="width:100%">
+                <thead>
+                  <tr>
+                    <th style="position:sticky;top:0;z-index:1">Case #</th>
+                    <th style="position:sticky;top:0;z-index:1">Petitioner</th>
+                    <th style="position:sticky;top:0;z-index:1">Respondent</th>
+                    <th style="position:sticky;top:0;z-index:1">Document</th>
+                    <th style="position:sticky;top:0;z-index:1">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="caseListBody">
+                  <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">Loading…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <!-- Document view (hidden until document selected) -->
       <div id="docView" style="display:none; flex:1; overflow:hidden; display:none; flex-direction:column;">
+
+        <!-- Doc Header -->
+        <div id="docHeader" style="background:var(--card);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px;">
+          <div style="min-width:0">
+            <div id="docHeaderTitle" style="font-size:15px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+            <div id="docHeaderMeta" style="font-size:12px;color:var(--text-muted);margin-top:2px;"></div>
+          </div>
+          <div id="docHeaderActions" style="display:flex;gap:8px;align-items:center;flex-shrink:0;"></div>
+        </div>
 
         <!-- Tabs -->
         <div class="tabs-bar">
@@ -1464,9 +1505,7 @@ async function doLogout() {
   renderDocList();
   document.getElementById('docView').style.display    = 'none';
   document.getElementById('emptyState').style.display = 'flex';
-  document.getElementById('topbarTitle').textContent  = 'Legal AI Agent';
-  document.getElementById('topbarMeta').textContent   = 'Upload a document to get started';
-  document.getElementById('topbarActions').innerHTML  = '';
+  document.getElementById('docHeaderActions').innerHTML = '';
   showAuthOverlay();
 }
 
@@ -1579,17 +1618,18 @@ function renderDocView() {
   const dv = document.getElementById('docView');
   dv.style.display = 'flex';
 
-  // Topbar
-  document.getElementById('topbarTitle').textContent = currentDoc.filename;
-  document.getElementById('topbarMeta').textContent  =
+  // Doc header
+  document.getElementById('docHeaderTitle').textContent = currentDoc.filename;
+  document.getElementById('docHeaderMeta').textContent  =
     `${a.document_type || 'Unknown Type'}  ·  ${formatBytes(currentDoc.size)}`;
   const origExt  = (currentDoc.filename.match(/\.[^.]+$/) || [''])[0].toLowerCase();
   const EXT_ICONS = {'.pdf':'📕','.docx':'📘','.doc':'📘','.txt':'📝','.md':'📝'};
   const EXT_NAMES = {'.pdf':'PDF Document','.docx':'Word Document','.doc':'Word Document','.txt':'Text File','.md':'Markdown File'};
   const origIcon  = EXT_ICONS[origExt] || '📄';
   const origLabel = EXT_NAMES[origExt] || (origExt ? origExt.toUpperCase().slice(1) + ' File' : 'Original File');
-  document.getElementById('topbarActions').innerHTML =
-    `<button class="btn" style="font-size:12px;padding:5px 13px;" onclick="openEdit()">✏️ Edit</button>
+  document.getElementById('docHeaderActions').innerHTML =
+    `<span class="badge badge-${(a.risk_level||'unknown').toLowerCase()}">${riskDot(a.risk_level)} ${a.risk_level || 'Unknown'} Risk</span>
+     <button class="btn" style="font-size:12px;padding:5px 13px;" onclick="openEdit()">✏️ Edit</button>
      <div class="dropdown" id="dlDropdown">
        <button class="btn" style="font-size:12px;padding:5px 13px;" onclick="toggleDownloadMenu(event)">⬇ Download ▾</button>
        <div class="dropdown-menu">
@@ -1602,8 +1642,7 @@ function renderDocView() {
            <div><div>Analysis Report</div><div class="dropdown-item-sub">AI analysis as PDF</div></div>
          </button>
        </div>
-     </div>
-     <span class="badge badge-${(a.risk_level||'unknown').toLowerCase()}">${riskDot(a.risk_level)} ${a.risk_level || 'Unknown'} Risk</span>`;
+     </div>`;
 
   switchTab('overview');
   renderOverview(a);
@@ -1955,9 +1994,15 @@ function toggleDownloadMenu(e) {
   document.getElementById('dlDropdown').classList.toggle('open');
 }
 
-// Close dropdown on any outside click
-document.addEventListener('click', () => {
+// Close dropdown and alerts panel on any outside click
+document.addEventListener('click', e => {
   document.getElementById('dlDropdown')?.classList.remove('open');
+  const panel = document.getElementById('alertsPanel');
+  const bell  = document.getElementById('alertBell');
+  if (panel && panel.style.display !== 'none' &&
+      !panel.contains(e.target) && !bell.contains(e.target)) {
+    panel.style.display = 'none';
+  }
 });
 
 function triggerDownload(blob, filename) {
@@ -2193,9 +2238,7 @@ async function removeDocFromLibrary(id) {
     currentDoc   = null;
     document.getElementById('docView').style.display    = 'none';
     document.getElementById('emptyState').style.display = 'flex';
-    document.getElementById('topbarTitle').textContent  = 'Legal AI Agent';
-    document.getElementById('topbarMeta').textContent   = 'Upload a document to get started';
-    document.getElementById('topbarActions').innerHTML  = '';
+    document.getElementById('docHeaderActions').innerHTML = '';
   }
   renderDocList();
   renderLibrary();
@@ -2333,9 +2376,7 @@ async function removeDoc(id) {
     currentDoc   = null;
     document.getElementById('docView').style.display   = 'none';
     document.getElementById('emptyState').style.display = 'flex';
-    document.getElementById('topbarTitle').textContent  = 'Legal AI Agent';
-    document.getElementById('topbarMeta').textContent   = 'Upload a document to get started';
-    document.getElementById('topbarActions').innerHTML  = '';
+    document.getElementById('docHeaderActions').innerHTML = '';
   }
   renderDocList();
   showToast('Document deleted');
@@ -2414,6 +2455,10 @@ function dlFormatDate(isoDate) {
   } catch { return isoDate; }
 }
 
+function stripPartyLabel(name) {
+  return (name || '').replace(/\s*\((?:Petitioner|Respondent|Plaintiff|Defendant|Appellant|Complainant|Accused)\)\s*$/i, '').trim();
+}
+
 function dlUrgencyClass(daysLeft) {
   if (daysLeft === null) return 'dl-urgency-normal';
   if (daysLeft < 0)   return 'dl-urgency-overdue';
@@ -2423,7 +2468,7 @@ function dlUrgencyClass(daysLeft) {
 
 function dlDaysText(daysLeft, isoDate, approx) {
   if (daysLeft === null) return approx ? `<span class="dl-days">${esc(approx)}</span>` : '';
-  if (daysLeft < 0)  return `<span class="dl-days dl-days-overdue">${Math.abs(daysLeft)} days overdue</span>`;
+  if (daysLeft < 0)  return `<span class="dl-days dl-days-overdue">Overdue</span>`;
   if (daysLeft === 0) return `<span class="dl-days dl-days-overdue">Due TODAY</span>`;
   if (daysLeft <= 7)  return `<span class="dl-days dl-days-soon">${daysLeft} days left &middot; ${dlFormatDate(isoDate)}</span>`;
   return `<span class="dl-days dl-days-ok">${daysLeft} days &middot; ${dlFormatDate(isoDate)}</span>`;
@@ -2641,18 +2686,18 @@ function renderAlertsPanel() {
     const daysHtml = daysLeft === null
       ? `<span style="color:var(--text-muted);font-size:12px">No fixed date</span>`
       : isOverdue
-        ? `<span style="color:var(--red);font-size:12px;font-weight:600">${Math.abs(daysLeft)} days overdue</span>`
+        ? `<span style="color:var(--red);font-size:12px;font-weight:600">Overdue</span>`
         : daysLeft === 0
           ? `<span style="color:var(--red);font-size:12px;font-weight:600">Due TODAY</span>`
           : `<span style="color:${daysLeft <= 3 ? 'var(--red)' : 'var(--amber)'};font-size:12px;font-weight:600">${daysLeft} days left</span>`;
     const caseDoc = allDocs.find(d => d.id === dl.doc_id);
+    const caseLabel = caseDoc?.case_number || caseDoc?.filename || dl.doc_id;
     return `
     <div class="alert-item">
       <div class="alert-item-title">${esc(dl.title)}</div>
-      <div class="alert-item-case">📁 ${esc(caseDoc?.filename || dl.doc_id)}</div>
+      <div class="alert-item-case">📁 ${esc(caseLabel)}</div>
       <div>${daysHtml} &middot; ${dlFormatDate(dl.date)}</div>
       <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="dl-btn" onclick="dlSnooze('${dl.id}',7,'alert')" style="font-size:11px">💤 Snooze 7d</button>
         <button class="dl-btn" onclick="openDocDeadlines('${dl.doc_id}')">Open case</button>
       </div>
     </div>`;
@@ -2699,15 +2744,21 @@ function _hideAllMainPanels() {
   document.getElementById('docView').style.display            = 'none';
   document.getElementById('manageDeadlinesView').style.display = 'none';
   document.getElementById('addDeadlineView').style.display    = 'none';
+  document.getElementById('caseListView').style.display       = 'none';
   document.getElementById('btnManageDeadlines')?.classList.remove('active');
   document.getElementById('btnAddDeadline')?.classList.remove('active');
+  document.getElementById('btnCaseList')?.classList.remove('active');
 }
 
-function openManageDeadlines() {
+async function openManageDeadlines() {
   _hideAllMainPanels();
   document.getElementById('manageDeadlinesView').style.display = 'flex';
   document.getElementById('btnManageDeadlines')?.classList.add('active');
-  // show all deadlines by default on first open
+  // Always fetch fresh list so search has data to work with
+  try {
+    const r = await fetch(`${API}/api/deadlines`, { headers: authHeaders() });
+    if (r.ok) allDeadlines = await r.json();
+  } catch { /* keep existing allDeadlines */ }
   renderDlViewResults();
 }
 
@@ -2718,11 +2769,61 @@ function openAddDeadlinePanel() {
   _populateDlvDocSelect();
 }
 
+async function openCaseList() {
+  _hideAllMainPanels();
+  document.getElementById('caseListView').style.display = 'flex';
+  document.getElementById('btnCaseList')?.classList.add('active');
+  renderCaseList();
+}
+
+function renderCaseList() {
+  const tbody = document.getElementById('caseListBody');
+  const countEl = document.getElementById('caseListCount');
+  if (!tbody) return;
+
+  if (!allDocs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px">No cases uploaded yet. Use Upload Document to add cases.</td></tr>';
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+
+  if (countEl) countEl.textContent = `${allDocs.length} case${allDocs.length !== 1 ? 's' : ''}`;
+
+  tbody.innerHTML = allDocs.map(doc => {
+    const parties    = doc.parties || [];
+    const petitioner = stripPartyLabel(parties[0]) || '—';
+    const respondent = stripPartyLabel(parties[1]) || '—';
+    const caseNum    = doc.case_number || '—';
+    const risk     = doc.risk_level || 'Unknown';
+    const riskCls  = risk === 'Low' ? 'badge-low' : risk === 'Medium' ? 'badge-medium' : risk === 'High' ? 'badge-high' : 'badge-unknown';
+    return `
+    <tr onclick="selectDoc('${doc.id}')" style="cursor:pointer">
+      <td><strong>${esc(caseNum)}</strong></td>
+      <td>${esc(petitioner)}</td>
+      <td>${esc(respondent)}</td>
+      <td>
+        <div style="font-size:13px;font-weight:500">${esc(doc.filename || '')}</div>
+        ${doc.document_type ? `<div style="font-size:11px;color:var(--text-muted)">${esc(doc.document_type)}</div>` : ''}
+      </td>
+      <td>
+        <span class="badge badge-low" style="font-size:11px">Analyzed</span>
+        <div style="margin-top:4px"><span class="badge ${riskCls}" style="font-size:11px">${esc(risk)} Risk</span></div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
 function _populateDlvDocSelect() {
   const sel = document.getElementById('dlvAddDocId');
   if (!sel) return;
-  sel.innerHTML = '<option value="">— Select case / document —</option>' +
-    allDocs.map(d => `<option value="${d.id}">${esc(d.filename)}</option>`).join('');
+  sel.innerHTML = '<option value="">— Select case —</option>' +
+    allDocs.map(d => {
+      // Show: "CASE# – Petitioner" if case number exists, else filename
+      let label = d.case_number || '';
+      if (label && d.parties?.[0]) label += ' \u2013 ' + d.parties[0];
+      if (!label) label = d.filename;
+      return `<option value="${d.id}">${esc(label)}</option>`;
+    }).join('');
 }
 
 /* ── Search / filter ─────────────────────────────────────────────────────── */
@@ -2731,31 +2832,47 @@ function clearDlViewSearch() {
   document.getElementById('dlvDateFrom').value = '';
   document.getElementById('dlvDateTo').value   = '';
   document.getElementById('dlvTableBody').innerHTML =
-    '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Enter search criteria above and click Search</td></tr>';
+    '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">Enter search criteria above and click Search</td></tr>';
   document.getElementById('dlvCount').textContent = '';
 }
 
 function renderDlViewResults() {
-  const q       = (document.getElementById('dlvSearch')?.value || '').toLowerCase().trim();
+  const q        = (document.getElementById('dlvSearch')?.value || '').toLowerCase().trim();
   const dateFrom = document.getElementById('dlvDateFrom')?.value || '';
   const dateTo   = document.getElementById('dlvDateTo')?.value   || '';
 
-  const filtered = allDeadlines.filter(dl => {
-    const doc     = allDocs.find(d => d.id === dl.doc_id);
-    const parties = (doc?.parties || []).join(' ').toLowerCase();
-    const caseNum = (doc?.case_number || '').toLowerCase();
-    const dateStr = (dl.date || '');
-    const matchQ  = !q
-      || (dl.title || '').toLowerCase().includes(q)
+  const hasQ     = q.length > 0;
+  const hasDates = !!(dateFrom || dateTo);
+
+  // Only show manually-added deadlines (not auto-extracted from documents)
+  const manualOnly = allDeadlines.filter(dl => dl.source === 'manual');
+
+  const filtered = manualOnly.filter(dl => {
+    const doc      = allDocs.find(d => d.id === dl.doc_id);
+    // Search each party name individually so partial name matches work
+    const parties  = (doc?.parties || []).map(p => p.toLowerCase());
+    const caseNum  = (doc?.case_number || '').toLowerCase();
+    const dateStr  = dl.date || '';
+
+    // Text match: any field containing the query
+    const textMatch = !hasQ || (
+      (dl.title       || '').toLowerCase().includes(q)
       || (doc?.filename || '').toLowerCase().includes(q)
-      || parties.includes(q)
       || caseNum.includes(q)
+      || parties.some(p => p.includes(q))
       || (dl.description || '').toLowerCase().includes(q)
       || dlFormatDate(dl.date).toLowerCase().includes(q)
-      || (dl.type || '').replace(/_/g,' ').includes(q);
+      || (dl.type || '').replace(/_/g, ' ').includes(q)
+    );
+
+    // Date range match (only applies when deadline has a date)
     const matchFrom = !dateFrom || (dateStr && dateStr >= dateFrom);
     const matchTo   = !dateTo   || (dateStr && dateStr <= dateTo);
-    return matchQ && matchFrom && matchTo;
+    const dateMatch = !hasDates || (matchFrom && matchTo);
+
+    // OR between criteria types when both are specified
+    if (hasQ && hasDates) return textMatch || dateMatch;
+    return textMatch && dateMatch;
   });
 
   const enriched = filtered.map(dl => ({ ...dl, daysLeft: dlDaysLeft(dl.date) }));
@@ -2769,46 +2886,41 @@ function renderDlViewResults() {
   if (!tbody) return;
 
   if (!enriched.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">
-      ${q ? 'No deadlines match your search.' : 'No deadlines yet — add one below.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">
+      ${q || hasDates ? 'No deadlines match your search.' : 'No manually added deadlines yet. Use ➕ Add Deadline to create one.'}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = enriched.map(dl => {
-    const doc       = allDocs.find(d => d.id === dl.doc_id);
-    const parties   = doc?.parties || [];
-    const petitioner = parties[0] || '—';
-    const respondent = parties[1] || '—';
-    const caseNum   = doc?.case_number || null;
-    const daysLeft  = dl.daysLeft;
-    const rowCls    = daysLeft !== null && daysLeft < 0 ? 'dlm-overdue'
+    const doc        = allDocs.find(d => d.id === dl.doc_id);
+    const parties    = doc?.parties || [];
+    const petitioner = stripPartyLabel(parties[0]) || '—';
+    const respondent = stripPartyLabel(parties[1]) || '—';
+    const caseNum    = doc?.case_number || null;
+    const daysLeft   = dl.daysLeft;
+    const rowCls     = daysLeft !== null && daysLeft < 0 ? 'dlm-overdue'
       : daysLeft !== null && daysLeft <= 7 ? 'dlm-soon' : '';
-    const daysBadge = daysLeft === null ? ''
-      : daysLeft < 0  ? `<span style="color:var(--red);font-size:11px;font-weight:600">${Math.abs(daysLeft)}d overdue</span>`
-      : daysLeft === 0 ? `<span style="color:var(--red);font-size:11px;font-weight:600">TODAY</span>`
-      : daysLeft <= 7  ? `<span style="color:var(--amber);font-size:11px;font-weight:600">${daysLeft}d left</span>`
-      :                  `<span style="color:var(--green);font-size:11px;font-weight:600">${daysLeft}d</span>`;
-    const histCount = (dl.date_history || []).length;
-    const caseCell  = doc ? _caseNumTableHtml(doc.id, caseNum, 'view') : '<span class="dt-case-empty">—</span>';
+    const daysCell   = daysLeft === null
+      ? '<span style="color:var(--text-muted);font-size:13px">—</span>'
+      : daysLeft < 0  ? '<span style="color:var(--red);font-size:15px;font-weight:700">Overdue</span>'
+      : daysLeft === 0 ? '<span style="color:var(--red);font-size:15px;font-weight:700">TODAY</span>'
+      : daysLeft <= 7  ? `<span style="color:var(--amber);font-size:15px;font-weight:700">${daysLeft}d left</span>`
+      :                  `<span style="color:var(--green);font-size:15px;font-weight:700">${daysLeft}d left</span>`;
+    const histCount  = (dl.date_history || []).length;
+    const caseCell   = doc ? _caseNumTableHtml(doc.id, caseNum, 'view') : '<span class="dt-case-empty">—</span>';
     return `
     <tr class="${rowCls}" id="dlv-row-${dl.id}">
       <td id="case-cell-view-${doc?.id}">${caseCell}</td>
       <td>
-        <div class="dlm-plabel">Petitioner</div>
         <div class="dlm-party">${esc(petitioner)}</div>
         ${parties.length > 2 ? `<div style="font-size:11px;color:var(--text-muted)">+${parties.length-2} more</div>` : ''}
       </td>
-      <td>
-        <div class="dlm-plabel">Respondent</div>
-        <div class="dlm-party">${esc(respondent)}</div>
-      </td>
-      <td>
-        <div class="dlm-title">${esc(dl.title)}</div>
-        <span class="dlm-type-chip">${esc(dlTypeLabel(dl.type))}</span>
-        ${dl.description ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(dl.description)}</div>` : ''}
-      </td>
+      <td><div class="dlm-party">${esc(respondent)}</div></td>
+      <td><div class="dlm-title">${esc(dl.title)}</div></td>
+      <td><span class="dlm-type-chip">${esc(dlTypeLabel(dl.type))}</span></td>
+      <td><div style="font-size:12px;color:var(--text-muted)">${dl.description ? esc(dl.description) : '—'}</div></td>
       <td class="dlm-date-cell">
-        <div class="dlm-cur-date">Current: <strong>${dl.date ? dlFormatDate(dl.date) : 'Not set'}</strong> ${daysBadge}</div>
+        <div class="dlm-cur-date"><strong>${dl.date ? dlFormatDate(dl.date) : 'Not set'}</strong></div>
         <div class="dlm-new-date-row">
           <input class="dlm-date-input" id="dlv-newdate-${dl.id}" type="date" value="${dl.date || ''}" placeholder="New date"/>
           <button class="dlm-update-btn" onclick="dlvUpdateDate('${dl.id}')">Update</button>
@@ -2817,6 +2929,7 @@ function renderDlViewResults() {
           📋 History (${histCount})
         </button>
       </td>
+      <td style="text-align:center">${daysCell}</td>
       <td>
         <span class="badge badge-${dl.status === 'active' ? 'low' : 'unknown'}" style="font-size:11px">
           ${dl.status}
@@ -2830,7 +2943,7 @@ function renderDlViewResults() {
       </td>
     </tr>
     <tr class="dlm-history-row" id="dlv-hist-${dl.id}" style="display:none">
-      <td colspan="6">
+      <td colspan="9">
         ${_renderDateHistory(dl)}
       </td>
     </tr>`;
@@ -2999,9 +3112,9 @@ function renderDashboard() {
           const daysCls   = daysLeft === null ? '' : daysLeft < 0 ? 'dt-days-overdue' : daysLeft <= 7 ? 'dt-days-soon' : 'dt-days-ok';
           const daysLabel = daysLeft === null
             ? (dl.date_approximate ? `<span style="color:var(--text-muted)">${esc(dl.date_approximate)}</span>` : '—')
-            : daysLeft < 0  ? `${Math.abs(daysLeft)}d overdue`
+            : daysLeft < 0  ? 'Overdue'
             : daysLeft === 0 ? 'TODAY'
-            : `${daysLeft}d`;
+            : `${daysLeft}d left`;
           const dateDisplay = dl.date
             ? `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" title="Click to edit">${dlFormatDate(dl.date)}</span>`
             : `<span class="dash-item-date" onclick="startInlineEdit('${dl.id}')" style="color:var(--text-muted)" title="Click to set">Set date…</span>`;
@@ -3010,11 +3123,9 @@ function renderDashboard() {
           <tr class="${rowCls}" id="dash-dl-${dl.id}">
             <td id="case-cell-dash-${doc?.id}">${dashCaseCell}</td>
             <td>
-              <div class="dt-party-label">Petitioner</div>
               <div class="dt-party">${esc(petitioner)}</div>
             </td>
             <td>
-              <div class="dt-party-label">Respondent</div>
               <div class="dt-party">${esc(respondent)}</div>
             </td>
             <td>
